@@ -127,6 +127,7 @@ const COLUMNS: { id: OrderStatus; title: string; icon: React.ReactNode }[] = [
   { id: 'processing', title: 'Traitement', icon: <Clock className="h-4 w-4" /> },
   { id: 'shipped', title: 'Expédié', icon: <Truck className="h-4 w-4" /> },
   { id: 'delivered', title: 'Livré', icon: <CheckCircle2 className="h-4 w-4" /> },
+  { id: 'cancelled', title: 'Annulé', icon: <XCircle className="h-4 w-4" /> },
 ];
 
 export default function OrdersPage() {

@@ -13,6 +13,7 @@ import {
   DollarSign,
   ArrowUpRight,
 } from 'lucide-react';
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 // Demo data
 const REVENUE_DATA = [
@@ -34,16 +35,19 @@ const TOP_PRODUCTS = [
 ];
 
 const TRAFFIC_SOURCES = [
-  { source: 'whatsapp', label: 'WhatsApp', icon: '💬', visits: 342, conversions: 28, color: 'bg-green-500' },
-  { source: 'instagram', label: 'Instagram', icon: '📷', visits: 189, conversions: 12, color: 'bg-pink-500' },
+  { source: 'whatsapp', label: 'WhatsApp', icon: '💬', visits: 342, conversions: 28, color: 'bg-[#25D366]' },
+  { source: 'instagram', label: 'Instagram', icon: '📷', visits: 189, conversions: 12, color: 'bg-[#E1306C]' },
   { source: 'tiktok', label: 'TikTok', icon: '🎵', visits: 156, conversions: 8, color: 'bg-black' },
-  { source: 'direct', label: 'Direct', icon: '🌐', visits: 89, conversions: 15, color: 'bg-blue-500' },
+  { source: 'direct', label: 'Direct', icon: '🌐', visits: 89, conversions: 15, color: 'bg-[#00C48C]' },
 ];
 
-const HOUR_HEATMAP: [string, number][] = [
-  ['6h', 0], ['7h', 2], ['8h', 5], ['9h', 8], ['10h', 12], ['11h', 15],
-  ['12h', 10], ['13h', 8], ['14h', 6], ['15h', 10], ['16h', 14], ['17h', 18],
-  ['18h', 22], ['19h', 25], ['20h', 20], ['21h', 15], ['22h', 8], ['23h', 3],
+const HOUR_HEATMAP = [
+  { hour: '6h', intensity: 0 }, { hour: '7h', intensity: 2 }, { hour: '8h', intensity: 5 }, 
+  { hour: '9h', intensity: 8 }, { hour: '10h', intensity: 12 }, { hour: '11h', intensity: 15 },
+  { hour: '12h', intensity: 10 }, { hour: '13h', intensity: 8 }, { hour: '14h', intensity: 6 }, 
+  { hour: '15h', intensity: 10 }, { hour: '16h', intensity: 14 }, { hour: '17h', intensity: 18 },
+  { hour: '18h', intensity: 22 }, { hour: '19h', intensity: 25 }, { hour: '20h', intensity: 20 }, 
+  { hour: '21h', intensity: 15 }, { hour: '22h', intensity: 8 }, { hour: '23h', intensity: 3 },
 ];
 
 export default function AnalyticsPage() {
@@ -52,9 +56,8 @@ export default function AnalyticsPage() {
   const totalRevenue = REVENUE_DATA.reduce((sum, d) => sum + d.revenue, 0);
   const totalOrders = REVENUE_DATA.reduce((sum, d) => sum + d.orders, 0);
   const avgOrderValue = totalRevenue / totalOrders;
-  const conversionRate = (TRAFFIC_SOURCES.reduce((sum, s) => sum + s.conversions, 0) / TRAFFIC_SOURCES.reduce((sum, s) => sum + s.visits, 0)) * 100;
-
-  const maxRevenue = Math.max(...REVENUE_DATA.map((d) => d.revenue));
+  const totalVisits = TRAFFIC_SOURCES.reduce((sum, s) => sum + s.visits, 0);
+  const conversionRate = (TRAFFIC_SOURCES.reduce((sum, s) => sum + s.conversions, 0) / totalVisits) * 100;
 
   return (
     <div className="p-4 space-y-6">
@@ -98,32 +101,43 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Simple Bar Chart */}
-          <div className="flex items-end justify-between gap-2 h-40">
-            {REVENUE_DATA.map((d, i) => (
-              <motion.div
-                key={d.date}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="flex-1 flex flex-col items-center gap-2"
-              >
-                <div className="w-full flex flex-col items-center">
-                  <span className="text-xs text-text-3 mb-1">
-                    {formatPrice(d.revenue).replace('FCFA', '').trim()}
-                  </span>
-                  <div className="w-full bg-bg-elevated rounded-t-lg relative" style={{ height: `${(d.revenue / maxRevenue) * 100}%`, minHeight: '8px' }}>
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{ height: '100%' }}
-                      transition={{ delay: i * 0.05 + 0.2, duration: 0.5 }}
-                      className="absolute inset-0 bg-primary rounded-t-lg"
-                    />
-                  </div>
-                </div>
-                <span className="text-xs text-text-3">{d.date}</span>
-              </motion.div>
-            ))}
+          {/* Area Chart using Recharts */}
+          <div className="h-60 w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={REVENUE_DATA} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FF4D00" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#FF4D00" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E3DC" />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 12, fill: '#9CA3AF' }} 
+                  dy={10} 
+                />
+                <YAxis 
+                  hide={true} 
+                  domain={['auto', 'auto']} 
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 16px rgba(26, 26, 46, 0.08)' }}
+                  formatter={(value) => [`${formatPrice(Number(value))}`, 'Revenu']}
+                  labelStyle={{ fontWeight: 'bold', color: '#1A1A2E', marginBottom: '4px' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#FF4D00" 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorRevenue)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </Card>
       </motion.div>
@@ -182,7 +196,7 @@ export default function AnalyticsPage() {
               </div>
               <span className="text-text-2 text-sm">Visiteurs</span>
             </div>
-            <p className="font-outfit text-2xl font-bold">776</p>
+            <p className="font-outfit text-2xl font-bold">{totalVisits}</p>
             <div className="flex items-center gap-1 text-accent-green text-sm">
               <ArrowUpRight className="h-4 w-4" />
               +24%
@@ -221,25 +235,26 @@ export default function AnalyticsPage() {
           <h3 className="font-display font-bold text-text-1 mb-4">Sources de trafic</h3>
           <div className="space-y-4">
             {TRAFFIC_SOURCES.map((source) => {
+              const volumePercentage = ((source.visits / totalVisits) * 100).toFixed(0);
               return (
                 <div key={source.source} className="flex items-center gap-4">
-                  <div className={`h-10 w-10 rounded-full ${source.color} flex items-center justify-center text-xl`}>
+                  <div className={`h-10 w-10 rounded-full ${source.color} flex items-center justify-center text-xl text-white shadow-sm`}>
                     {source.icon}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-medium">{source.label}</span>
-                      <span className="text-sm text-text-2">{source.visits} visits</span>
+                      <span className="text-sm text-text-2">{source.visits} visites</span>
                     </div>
                     <div className="h-2 bg-bg-elevated rounded-full overflow-hidden">
                       <div
-                        className={`h-full ${source.color} rounded-full`}
-                        style={{ width: `${(source.visits / 342) * 100}%` }}
+                        className={`h-full ${source.color.replace('bg-[', '').replace(']', '')} rounded-full`}
+                        style={{ width: `${volumePercentage}%`, backgroundColor: source.color.includes('bg-[') ? source.color.match(/bg-\[(.*?)\]/)?.[1] : source.color.replace('bg-', '') }}
                       />
                     </div>
                   </div>
-                  <Badge variant="success" size="sm">
-                    {((source.conversions / source.visits) * 100).toFixed(0)}%
+                  <Badge variant="default" size="sm" className="bg-bg-elevated text-text-1 border border-border-subtle">
+                    {volumePercentage}%
                   </Badge>
                 </div>
               );
@@ -248,11 +263,49 @@ export default function AnalyticsPage() {
         </Card>
       </motion.div>
 
+      {/* Peak Hours Heatmap Chart */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Card className="p-5 bg-bg-surface border-border-subtle" variant="default">
+          <h3 className="font-display font-bold text-text-1 mb-4">Heures de pointe</h3>
+          <div className="h-40 w-full mt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={HOUR_HEATMAP} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <XAxis 
+                  dataKey="hour" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#9CA3AF' }} 
+                  interval={2}
+                />
+                <Tooltip
+                  cursor={{ fill: 'transparent' }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 16px rgba(26, 26, 46, 0.08)' }}
+                  formatter={(value) => [`${value} commandes`, 'Activité']}
+                  labelStyle={{ fontWeight: 'bold', color: '#1A1A2E' }}
+                />
+                <Bar dataKey="intensity" radius={[4, 4, 0, 0]}>
+                  {HOUR_HEATMAP.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={`rgba(255, 77, 0, ${Math.max(0.2, entry.intensity / 25)})`} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-center text-sm text-text-2 mt-2">
+            Pic de commandes entre <span className="font-semibold text-primary">18h - 20h</span>
+          </p>
+        </Card>
+      </motion.div>
+
       {/* Top Products */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
+        transition={{ delay: 0.45 }}
       >
         <Card className="p-5 bg-bg-surface border-border-subtle" variant="default">
           <div className="flex items-center justify-between mb-4">
@@ -281,32 +334,6 @@ export default function AnalyticsPage() {
         </Card>
       </motion.div>
 
-      {/* Peak Hours */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-      >
-        <Card className="p-5 bg-bg-surface border-border-subtle" variant="default">
-          <h3 className="font-display font-bold text-text-1 mb-4">Heures de pointe</h3>
-          <div className="grid grid-cols-6 gap-2">
-            {HOUR_HEATMAP.map(([hour, intensity]) => (
-              <div key={hour} className="text-center">
-                <div
-                  className="h-8 rounded-lg mb-1 transition-colors"
-                  style={{
-                    backgroundColor: `rgba(255, 77, 0, ${intensity / 25})`,
-                  }}
-                />
-                <span className="text-xs text-text-3">{hour}</span>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-sm text-text-2 mt-4">
-            Pic de commandes entre <span className="font-semibold text-primary">18h - 20h</span>
-          </p>
-        </Card>
-      </motion.div>
     </div>
   );
 }

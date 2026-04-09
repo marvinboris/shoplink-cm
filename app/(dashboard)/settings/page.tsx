@@ -63,9 +63,15 @@ export default function SettingsPage() {
   return (
     <div className="p-4 space-y-6">
       {/* Header */}
-      <header>
-        <h1 className="font-display text-2xl font-bold text-text-1">Paramètres</h1>
-        <p className="text-sm text-text-3">Configurez votre boutique</p>
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-2xl font-bold text-text-1">Paramètres</h1>
+          <p className="text-sm text-text-3">Configurez votre boutique</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => window.open('/boutique/maries-closet', '_blank')}>
+          <ExternalLink className="mr-2 h-4 w-4" />
+          Voir ma boutique
+        </Button>
       </header>
 
       {/* Current Plan */}

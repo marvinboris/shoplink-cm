@@ -46,9 +46,9 @@ const config: Config = {
         danger: "var(--danger)",
       },
       fontFamily: {
-        display: ["Bricolage Grotesque", "sans-serif"],
-        body: ["DM Sans", "sans-serif"],
-        outfit: ["Outfit", "sans-serif"],
+        display: ["var(--font-bricolage)", "sans-serif"],
+        body: ["var(--font-dm-sans)", "sans-serif"],
+        outfit: ["var(--font-outfit)", "sans-serif"],
       },
       borderRadius: {
         "2xl": "16px",

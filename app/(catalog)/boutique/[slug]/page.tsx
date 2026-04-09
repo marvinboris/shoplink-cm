@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -107,15 +108,25 @@ const PRODUCTS = [
 ];
 
 const CATEGORIES = ['Tous', 'Robes', 'Beauté', 'Pagnes', 'Accessoires', 'Perruques'];
+const CITIES = ['Douala', 'Yaoundé', 'Bafoussam', 'Bamenda', 'Kribi', 'Limbé', 'Buea'];
 
 export default function CatalogPage() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('Tous');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProduct, setSelectedProduct] = useState<typeof PRODUCTS[0] | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [showCheckout, setShowCheckout] = useState(false);
+  const [showCart, setShowCart] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const { items, addItem, updateQuantity, getTotal } = useCartStore();
+  const { items, updateQuantity, getTotal } = useCartStore();
+
+  const [checkoutForm, setCheckoutForm] = useState({
+    name: '',
+    phone: '',
+    city: 'Douala',
+    note: '',
+    paymentMethod: 'mtn_momo'
+  });
 
   useEffect(() => {
     const saved = localStorage.getItem('favorites');
@@ -136,12 +147,9 @@ export default function CatalogPage() {
     return matchesCategory && matchesSearch && p.isAvailable;
   });
 
-  const handleAddToCart = () => {
-    if (selectedProduct) {
-      addItem(selectedProduct, quantity);
-      setSelectedProduct(null);
-      setQuantity(1);
-    }
+  const handleCheckoutSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`/boutique/maries-closet/success`);
   };
 
   return (
@@ -264,7 +272,7 @@ export default function CatalogPage() {
                 transition={{ delay: i * 0.05 }}
               >
                 <Card
-                  className="catalog-card overflow-hidden p-0"
+                  className={`catalog-card overflow-hidden p-0 fade-slide-up stagger-${(i % 10) + 1}`}
                   padding="none"
                   onClick={() => setSelectedProduct(product)}
                 >
@@ -361,7 +369,7 @@ export default function CatalogPage() {
           <Button
             className="w-full h-14 rounded-2xl shadow-primary press-effect"
             style={{ backgroundColor: VENDOR.theme.primaryColor }}
-            onClick={() => setShowCheckout(true)}
+            onClick={() => setShowCart(true)}
           >
             <ShoppingCart className="mr-2 h-5 w-5" />
             Voir mon panier ({items.reduce((sum, i) => sum + i.quantity, 0)} articles)
@@ -372,98 +380,159 @@ export default function CatalogPage() {
         </motion.div>
       )}
 
-      {/* Product Detail Bottom Sheet */}
+      {/* Direct Checkout Bottom Sheet */}
       <BottomSheet
         isOpen={!!selectedProduct}
         onClose={() => {
           setSelectedProduct(null);
           setQuantity(1);
+          setCheckoutForm({ ...checkoutForm, name: '', phone: '', note: '' });
         }}
-        title={selectedProduct?.name}
+        title="Finaliser la commande"
       >
         {selectedProduct && (
-          <div className="space-y-4">
-            <img
-              src={selectedProduct.images[0]}
-              alt={selectedProduct.name}
-              className="w-full aspect-square rounded-2xl object-cover"
-            />
+          <form onSubmit={handleCheckoutSubmit} className="space-y-6 pb-6">
+            {/* Product Recap */}
+            <div className="flex items-center gap-4 bg-bg-elevated p-3 rounded-2xl">
+              <img
+                src={selectedProduct.images[0]}
+                alt={selectedProduct.name}
+                className="h-16 w-16 rounded-xl object-cover"
+              />
+              <div className="flex-1">
+                <p className="font-semibold text-text-1 line-clamp-1">{selectedProduct.name}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="font-outfit font-bold" style={{ color: VENDOR.theme.primaryColor }}>
+                    {formatPrice(selectedProduct.price)}
+                  </span>
+                  <span className="text-sm text-text-3">x{quantity}</span>
+                </div>
+              </div>
+              <div className="flex flex-col items-center bg-bg-surface rounded-lg shadow-sm border border-border-subtle">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.min(selectedProduct.stock, quantity + 1))}
+                  className="h-7 w-8 flex items-center justify-center border-b border-border-subtle"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  className="h-7 w-8 flex items-center justify-center"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
 
-            <div className="flex items-start justify-between">
+            <div className="space-y-4">
               <div>
-                <Badge variant="default" size="sm">
-                  {selectedProduct.category}
-                </Badge>
-                <h2 className="font-display text-2xl font-bold mt-1">
-                  {formatPrice(selectedProduct.price)}
-                </h2>
-                {selectedProduct.comparePrice && (
-                  <p className="text-text-3 line-through">
-                    {formatPrice(selectedProduct.comparePrice)}
-                  </p>
-                )}
+                <label className="block text-sm font-semibold text-text-1 mb-1">Nom complet *</label>
+                <Input
+                  required
+                  placeholder="Ex: Aminata B."
+                  value={checkoutForm.name}
+                  onChange={(e) => setCheckoutForm({ ...checkoutForm, name: e.target.value })}
+                />
               </div>
-              <div className="text-right">
-                <p className="text-sm text-text-2">Stock disponible</p>
-                <p className="font-semibold">
-                  {selectedProduct.stock <= 3
-                    ? `⚠️ Plus que ${selectedProduct.stock}`
-                    : selectedProduct.stock}
-                </p>
+
+              <div>
+                <label className="block text-sm font-semibold text-text-1 mb-1">Téléphone *</label>
+                <Input
+                  required
+                  type="tel"
+                  placeholder="+237 6XX XXX XXX"
+                  value={checkoutForm.phone}
+                  onChange={(e) => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-text-1 mb-1">Ville de livraison *</label>
+                <select
+                  className="w-full h-11 px-3 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all"
+                  value={checkoutForm.city}
+                  onChange={(e) => setCheckoutForm({ ...checkoutForm, city: e.target.value })}
+                >
+                  {CITIES.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-text-1 mb-1">Note de livraison (Optionnel)</label>
+                <Input
+                  placeholder="Ex: Carrefour Ndokoti, derrière la station..."
+                  value={checkoutForm.note}
+                  onChange={(e) => setCheckoutForm({ ...checkoutForm, note: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-text-1 mb-2">Moyen de paiement *</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {[
+                    { id: 'mtn_momo', label: 'MTN Mobile Money', icon: '📱' },
+                    { id: 'orange_money', label: 'Orange Money', icon: '📱' },
+                    { id: 'cash', label: 'Paiement à la livraison', icon: '💵' },
+                  ].map((method) => (
+                    <label
+                      key={method.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                        checkoutForm.paymentMethod === method.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border-subtle bg-bg-surface hover:border-border-strong'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={method.id}
+                        checked={checkoutForm.paymentMethod === method.id}
+                        onChange={(e) => setCheckoutForm({ ...checkoutForm, paymentMethod: e.target.value })}
+                        className="sr-only"
+                      />
+                      <span className="text-xl">{method.icon}</span>
+                      <span className="font-medium text-text-1">{method.label}</span>
+                      {checkoutForm.paymentMethod === method.id && (
+                        <div className="ml-auto h-4 w-4 rounded-full border-4 border-primary bg-white" />
+                      )}
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Quantity Selector */}
-            <div className="flex items-center justify-center gap-4 py-3 bg-bg-elevated rounded-2xl">
-              <button
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="h-10 w-10 rounded-full bg-bg-surface shadow flex items-center justify-center press-effect"
+            <div className="border-t border-border-subtle pt-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-text-2">Sous-total</span>
+                <span>{formatPrice(selectedProduct.price * quantity)}</span>
+              </div>
+              <div className="flex justify-between font-bold text-lg mb-4">
+                <span>Total à payer</span>
+                <span style={{ color: VENDOR.theme.primaryColor }}>
+                  {formatPrice(selectedProduct.price * quantity)}
+                </span>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full text-lg h-14 rounded-xl"
+                style={{ backgroundColor: VENDOR.theme.primaryColor }}
               >
-                <Minus className="h-5 w-5" />
-              </button>
-              <span className="font-outfit text-2xl font-bold w-12 text-center">
-                {quantity}
-              </span>
-              <button
-                onClick={() => setQuantity(Math.min(selectedProduct.stock, quantity + 1))}
-                className="h-10 w-10 rounded-full bg-bg-surface shadow flex items-center justify-center press-effect"
-              >
-                <Plus className="h-5 w-5" />
-              </button>
+                Confirmer la commande
+              </Button>
             </div>
-
-            {/* Add to Cart */}
-            <Button
-              className="w-full"
-              size="lg"
-              style={{ backgroundColor: VENDOR.theme.primaryColor }}
-              onClick={handleAddToCart}
-            >
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              Ajouter au panier
-            </Button>
-
-            {/* WhatsApp Order */}
-            <a
-              href={`https://wa.me/${VENDOR.whatsappNumber}?text=${encodeURIComponent(
-                `Bonjour ${VENDOR.name}, je voudrais commander:\n\n${selectedProduct.name} x${quantity}\nPrix: ${formatPrice(selectedProduct.price * quantity)}\n\nMerci!`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-white font-semibold"
-              style={{ backgroundColor: '#25D366' }}
-            >
-              <MessageCircle className="h-5 w-5" />
-              Commander sur WhatsApp
-            </a>
-          </div>
+          </form>
         )}
       </BottomSheet>
 
       {/* Cart Bottom Sheet */}
       <BottomSheet
-        isOpen={showCheckout}
-        onClose={() => setShowCheckout(false)}
+        isOpen={showCart}
+        onClose={() => setShowCart(false)}
         title="Mon Panier"
       >
         <div className="space-y-4">
