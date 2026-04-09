@@ -105,44 +105,28 @@ export default function DashboardPage() {
       >
         <Card className="revenue-card overflow-hidden" padding="none">
           <div
-            className="p-6"
+            className="p-6 flex flex-col items-center justify-center text-center"
             style={{
               background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
               boxShadow: 'var(--shadow-primary)',
               borderRadius: 'var(--radius-xl)',
             }}
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-white/80 text-sm mb-1">Revenus aujourd&apos;hui</p>
-                <h2 className="font-outfit text-[36px] font-bold text-white mb-2 leading-none">
-                  {formatPrice(DEMO_STATS.todayRevenue)}
-                </h2>
-                <div className="flex items-center gap-1 text-white/90 text-sm">
-                  {DEMO_STATS.revenueChange > 0 ? (
-                    <>
-                      <TrendingUp className="h-4 w-4" />
-                      <span>+{DEMO_STATS.revenueChange}% vs hier</span>
-                    </>
-                  ) : (
-                    <>
-                      <TrendingDown className="h-4 w-4" />
-                      <span>{DEMO_STATS.revenueChange}% vs hier</span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="h-16 w-24 bg-white/10 rounded-2xl flex items-end justify-center pb-2">
-                <div className="flex items-end gap-1 h-12">
-                  {[40, 60, 45, 80, 65, 90, 75].map((h, i) => (
-                    <div
-                      key={i}
-                      className="w-2 bg-white/60 rounded-t"
-                      style={{ height: `${h}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
+            <h2 className="font-outfit text-[42px] font-bold text-white mb-2 leading-none">
+              {formatPrice(DEMO_STATS.todayRevenue)}
+            </h2>
+            <div className="flex items-center gap-1 text-white/90 text-[15px] font-medium">
+              {DEMO_STATS.revenueChange > 0 ? (
+                <>
+                  <TrendingUp className="h-5 w-5" />
+                  <span>+{DEMO_STATS.revenueChange}% vs hier</span>
+                </>
+              ) : (
+                <>
+                  <TrendingDown className="h-5 w-5" />
+                  <span>{DEMO_STATS.revenueChange}% vs hier</span>
+                </>
+              )}
             </div>
           </div>
         </Card>
