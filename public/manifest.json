@@ -1,0 +1,36 @@
+{
+  "name": "ShopLink CM",
+  "short_name": "ShopLink",
+  "description": "Boutique en ligne pour le Cameroun",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FF4D00",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["shopping", "business"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Ma Boutique",
+      "url": "/boutique/demo",
+      "description": "Voir ma boutique"
+    },
+    {
+      "name": "Commandes",
+      "url": "/orders",
+      "description": "Voir mes commandes"
+    }
+  ]
+}
