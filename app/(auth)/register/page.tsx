@@ -47,7 +47,7 @@ function RegisterForm() {
 
   // Form data
   const [name, setName] = useState('');
-  const [businessName] = useState('');
+  const [businessName, setBusinessName] = useState('');
   const [city, setCity] = useState('');
   const [slug, setSlug] = useState('');
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
@@ -197,7 +197,10 @@ function RegisterForm() {
               label="Nom de votre boutique"
               placeholder="Ex: Marie's Closet"
               value={businessName}
-              onChange={(e) => generateSlug(e.target.value)}
+              onChange={(e) => {
+                setBusinessName(e.target.value);
+                generateSlug(e.target.value);
+              }}
               hint="Ce nom apparaîtra sur votre boutique"
             />
 

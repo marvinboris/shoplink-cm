@@ -12,16 +12,18 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, options, placeholder, ...props }, ref) => {
+  ({ className, label, error, options, placeholder, id, ...props }, ref) => {
+    const selectId = id || `select-${label?.toLowerCase().replace(/\s+/g, '-')}`;
     return (
       <div className="w-full">
         {label && (
-          <label className="mb-1.5 block text-sm font-medium text-text-1 font-body">
+          <label htmlFor={selectId} className="mb-1.5 block text-sm font-medium text-text-1 font-body">
             {label}
           </label>
         )}
         <div className="relative">
           <select
+            id={selectId}
             className={cn(
               'flex h-12 w-full appearance-none rounded-2xl border border-border bg-surface px-4 pr-10 font-body text-text-1 transition-all duration-200',
               'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
