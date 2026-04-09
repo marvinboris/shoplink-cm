@@ -1,124 +1,36 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { BottomSheet } from '@/components/ui/bottom-sheet';
-import { Card } from '@/components/ui/card';
 import { formatPrice } from '@/lib/utils';
-import { useCartStore } from '@/lib/stores';
-import {
-  Search,
-  MessageCircle,
-  Heart,
-  Plus,
-  Minus,
-  ShoppingCart,
-  Star,
-  MapPin,
-  Package,
-} from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
-// Demo vendor
-const VENDOR = {
-  name: "Marie",
-  businessName: "Marie's Closet",
-  bio: "Boutique spécialisée en mode féminine de qualité. Livraison partout au Cameroun! 💕",
-  avatar: null,
-  city: "Douala",
-  whatsappNumber: "+237600000000",
-  instagramHandle: "mariescloset",
-  isOnline: true,
-  rating: 4.9,
-  memberSince: 2024,
-  productCount: 124,
-  theme: {
-    primaryColor: '#FF4D00',
-    backgroundColor: '#FFF5F0',
-    cardColor: '#FFFFFF',
-  },
-  coverImage: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
-};
+const shop = {
+  slug: "maries-closet",
+  name: "Marie's Closet",
+  bio: "Mode & Beauté | Livraison Douala & Yaoundé | Paiement Mobile Money ✓",
+  whatsapp: "+237690000001",
+  coverImage: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
+  avatar: "https://i.pravatar.cc/150?img=47",
+}
 
-// Demo products
-const PRODUCTS = [
-  {
-    id: '1',
-    name: 'Robe wax taille M',
-    price: 15000,
-    comparePrice: 20000,
-    images: ['https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600'],
-    stock: 5,
-    isAvailable: true,
-    category: 'Robes',
-  },
-  {
-    id: '2',
-    name: 'Kit beauté complet',
-    price: 8500,
-    comparePrice: null,
-    images: ['https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600'],
-    stock: 12,
-    isAvailable: true,
-    category: 'Beauté',
-  },
-  {
-    id: '3',
-    name: 'Pagne holson 6 yards',
-    price: 12000,
-    comparePrice: 15000,
-    images: ['https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=600'],
-    stock: 8,
-    isAvailable: true,
-    category: 'Pagnes',
-  },
-  {
-    id: '4',
-    name: 'Parfum imported',
-    price: 35000,
-    comparePrice: 45000,
-    images: ['https://images.unsplash.com/photo-1541643600914-78b084683702?w=600'],
-    stock: 3,
-    isAvailable: true,
-    category: 'Beauté',
-  },
-  {
-    id: '5',
-    name: 'Sac à main cuir',
-    price: 22000,
-    comparePrice: null,
-    images: ['https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=600'],
-    stock: 7,
-    isAvailable: true,
-    category: 'Accessoires',
-  },
-  {
-    id: '6',
-    name: 'Lace wig 360 frontal',
-    price: 45000,
-    comparePrice: 55000,
-    images: ['https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600'],
-    stock: 2,
-    isAvailable: true,
-    category: 'Perruques',
-  },
-];
+const products = [
+  { id: 1, name: "Robe wax taille M", price: 15000, comparePrice: 20000, category: "Robes", stock: 5, image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400" },
+  { id: 2, name: "Kit beauté complet", price: 8500, comparePrice: null, category: "Beauté", stock: 12, image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400" },
+  { id: 3, name: "Pagne holson 6 yards", price: 12000, comparePrice: 15000, category: "Tissus", stock: 0, image: "https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=400" },
+  { id: 4, name: "Parfum Chanel imported", price: 35000, comparePrice: 45000, category: "Beauté", stock: 3, image: "https://images.unsplash.com/photo-1541643600914-78b084683702?w=400" },
+  { id: 5, name: "Sac à main cuir", price: 22000, comparePrice: null, category: "Accessoires", stock: 8, image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400" },
+  { id: 6, name: "Lace wig 360 frontal", price: 45000, comparePrice: 55000, category: "Perruques", stock: 2, image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400" },
+]
 
-const CATEGORIES = ['Tous', 'Robes', 'Beauté', 'Pagnes', 'Accessoires', 'Perruques'];
-const CITIES = ['Douala', 'Yaoundé', 'Bafoussam', 'Bamenda', 'Kribi', 'Limbé', 'Buea'];
+const CATEGORIES = ['Tout', 'Robes', 'Beauté', 'Tissus', 'Accessoires', 'Perruques'];
+const CITIES = ['Douala', 'Yaoundé', 'Bafoussam', 'Garoua', 'Kribi', 'Dschang', 'Limbé'];
 
 export default function CatalogPage() {
   const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState('Tous');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<typeof PRODUCTS[0] | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [showCart, setShowCart] = useState(false);
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const { items, updateQuantity, getTotal } = useCartStore();
+  const [selectedCategory, setSelectedCategory] = useState('Tout');
+  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
 
   const [checkoutForm, setCheckoutForm] = useState({
     name: '',
@@ -128,139 +40,85 @@ export default function CatalogPage() {
     paymentMethod: 'mtn_momo'
   });
 
-  useEffect(() => {
-    const saved = localStorage.getItem('favorites');
-    if (saved) setFavorites(JSON.parse(saved));
-  }, []);
-
-  const toggleFavorite = (id: string) => {
-    const newFavorites = favorites.includes(id)
-      ? favorites.filter((f) => f !== id)
-      : [...favorites, id];
-    setFavorites(newFavorites);
-    localStorage.setItem('favorites', JSON.stringify(newFavorites));
-  };
-
-  const filteredProducts = PRODUCTS.filter((p) => {
-    const matchesCategory = selectedCategory === 'Tous' || p.category === selectedCategory;
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch && p.isAvailable;
+  const filteredProducts = products.filter((p) => {
+    return selectedCategory === 'Tout' || p.category === selectedCategory;
   });
 
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(`/boutique/maries-closet/success`);
+    if (!selectedProduct) return;
+    const url = new URL(window.location.origin + `/boutique/maries-closet/success`);
+    url.searchParams.set('product', selectedProduct.name);
+    url.searchParams.set('price', selectedProduct.price.toString());
+    url.searchParams.set('name', checkoutForm.name);
+    url.searchParams.set('city', checkoutForm.city);
+    router.push(url.pathname + url.search);
   };
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: VENDOR.theme.backgroundColor }}
-    >
+    <div className="min-h-screen bg-bg-base">
       {/* Sticky WhatsApp Button */}
       <a
-        href={`https://wa.me/${VENDOR.whatsappNumber}?text=${encodeURIComponent(
-          `Bonjour ${VENDOR.name}, je suis intéressé(e) par vos produits sur ShopLink!`
-        )}`}
+        href={`https://wa.me/${shop.whatsapp}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed top-4 right-4 z-50 flex items-center justify-center h-12 w-12 rounded-full"
-        style={{ backgroundColor: '#25D366', boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)' }}
+        className="fixed top-4 right-4 z-50 flex items-center justify-center gap-1 font-semibold text-sm"
+        style={{ backgroundColor: '#25D366', color: 'white', borderRadius: '9999px', padding: '8px 16px', boxShadow: '0 4px 16px rgba(37, 211, 102, 0.4)' }}
       >
-        <MessageCircle className="h-6 w-6 text-white" />
+        <MessageCircle className="h-5 w-5" />
+        WhatsApp
       </a>
 
-      {/* Header with Cover + Shop Info */}
+      {/* Header */}
       <header className="relative">
-        {/* Cover Photo */}
         <div
-          className="w-full h-40 bg-cover bg-center relative"
-          style={{ backgroundImage: `url(${VENDOR.coverImage})` }}
+          className="w-full h-[160px] bg-cover bg-center relative"
+          style={{ backgroundImage: `url(${shop.coverImage})` }}
         >
           <div
             className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.4) 100%)',
-            }}
+            style={{ background: 'linear-gradient(to top, white, transparent)' }}
           />
         </div>
 
-        {/* Shop Info */}
         <div className="relative px-4 pb-4" style={{ marginTop: '-36px' }}>
-          {/* Avatar */}
-          <div
-            className="h-[72px] w-[72px] rounded-full flex items-center justify-center text-2xl font-bold text-white border-[3px] border-bg-surface mx-auto"
-            style={{ backgroundColor: VENDOR.theme.primaryColor, boxShadow: 'var(--shadow-md)' }}
-          >
-            {VENDOR.name[0]}
-          </div>
-
-          {/* Name + Bio */}
-          <div className="text-center mt-3">
-            <div className="flex items-center justify-center gap-2">
-              <h1 className="font-display text-[22px] font-bold text-text-1">
-                {VENDOR.businessName}
-              </h1>
-              {VENDOR.isOnline && (
-                <span className="h-2 w-2 rounded-full bg-accent-green animate-pulse" />
-              )}
-            </div>
-            <p className="text-text-2 text-sm mt-1 line-clamp-2">{VENDOR.bio}</p>
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center justify-center gap-4 mt-2 text-text-3 text-xs">
-            <span className="flex items-center gap-1">
-              <Package className="h-3 w-3" />
-              {VENDOR.productCount} produits
-            </span>
-            <span className="flex items-center gap-1">
-              <Star className="h-3 w-3 fill-accent-gold text-accent-gold" />
-              {VENDOR.rating}
-            </span>
-            <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              Membre depuis {VENDOR.memberSince}
-            </span>
-          </div>
+          <img
+            src={shop.avatar}
+            alt={shop.name}
+            className="h-[72px] w-[72px] rounded-full object-cover border-[3px] border-white mx-auto shadow-md"
+          />
+          <h1 className="font-display text-[22px] font-bold text-center mt-2 text-[#1A1A2E]">
+            {shop.name}
+          </h1>
+          <p className="text-center text-[#6B7280] text-[14px] mt-1 px-4 leading-snug">
+            {shop.bio}
+          </p>
         </div>
       </header>
 
-      {/* Search Bar */}
-      <div className="px-4 pb-3">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-text-3" />
-          <Input
-            placeholder="Rechercher un produit..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 bg-bg-surface border-border-subtle"
-          />
-        </div>
-      </div>
-
       {/* Categories */}
-      <div className="px-4 pb-4 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-        <div className="flex gap-2">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-120"
-              style={
-                selectedCategory === cat
-                  ? { backgroundColor: VENDOR.theme.primaryColor, color: 'white' }
-                  : { backgroundColor: 'var(--bg-elevated)', color: 'var(--text-2)' }
-              }
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+      <div className="px-4 pb-2 overflow-x-auto flex gap-2" style={{ scrollbarWidth: 'none' }}>
+        {CATEGORIES.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className="whitespace-nowrap transition-all duration-120 flex-shrink-0"
+            style={{
+              backgroundColor: selectedCategory === cat ? '#FF4D00' : '#F0EDE8',
+              color: selectedCategory === cat ? 'white' : '#4B5563',
+              borderRadius: '9999px',
+              padding: '8px 16px',
+              fontSize: '14px',
+              fontWeight: 500,
+            }}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
       {/* Products Grid */}
-      <main className="px-4 pb-6">
+      <main className="p-4 pt-2 pb-24">
         <div className="grid grid-cols-2 gap-3">
           <AnimatePresence>
             {filteredProducts.map((product, i) => (
@@ -271,335 +129,207 @@ export default function CatalogPage() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card
-                  className={`catalog-card overflow-hidden p-0 fade-slide-up stagger-${(i % 10) + 1}`}
-                  padding="none"
-                  onClick={() => setSelectedProduct(product)}
+                <div
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm fade-slide-up h-full flex flex-col"
                 >
                   <div className="relative aspect-square">
                     <img
-                      src={product.images[0]}
+                      src={product.image}
                       alt={product.name}
                       className="w-full h-full object-cover"
+                      style={{ filter: product.stock === 0 ? 'grayscale(100%)' : 'none' }}
                       loading="lazy"
                     />
-                    {product.comparePrice && (
-                      <Badge
-                        variant="default"
-                        size="sm"
-                        className="absolute top-2 left-2 bg-primary text-white font-semibold text-[11px]"
+                    {product.stock === 0 ? (
+                      <div
+                        className="absolute top-2 left-2 px-2 py-0.5 rounded font-semibold text-[11px]"
+                        style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}
                       >
-                        -{Math.round((1 - product.price / product.comparePrice) * 100)}%
-                      </Badge>
-                    )}
+                        Rupture
+                      </div>
+                    ) : product.comparePrice ? (
+                      <div
+                        className="absolute top-2 left-2 px-2 py-0.5 rounded font-semibold text-[11px]"
+                        style={{ backgroundColor: '#FF4D00', color: 'white' }}
+                      >
+                        PROMO
+                      </div>
+                    ) : null}
+                    
                     {product.stock <= 2 && product.stock > 0 && (
-                      <Badge
-                        variant="default"
-                        size="sm"
-                        className="absolute top-2 right-2 bg-accent-gold-soft text-accent-gold font-semibold text-[11px]"
+                      <div
+                        className="absolute top-2 right-2 px-2 py-0.5 rounded font-semibold text-[11px]"
+                        style={{ backgroundColor: '#FEF3C7', color: '#D97706' }}
                       >
                         ⚡ Dernier
-                      </Badge>
+                      </div>
                     )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(product.id);
-                      }}
-                      className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-white/90 shadow flex items-center justify-center"
-                    >
-                      <Heart
-                        className={`h-4 w-4 transition-all duration-200 ${
-                          favorites.includes(product.id)
-                            ? 'fill-danger text-danger scale-110'
-                            : 'text-text-3'
-                        }`}
-                      />
-                    </button>
                   </div>
-                  <div className="p-[10px]">
-                    <p className="font-body font-semibold text-[13px] text-text-1 line-clamp-2 mb-1">
-                      {product.name}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p
-                        className="font-outfit font-bold text-[16px]"
-                        style={{ color: VENDOR.theme.primaryColor }}
-                      >
-                        {formatPrice(product.price)}
+                  <div className="p-[10px] flex-1 flex flex-col justify-between">
+                    <div className="mb-2">
+                      <p className="font-semibold text-[13px] text-[#1A1A2E] line-clamp-2 mb-1" style={{ minHeight: '39px' }}>
+                        {product.name}
                       </p>
-                      {product.comparePrice && (
-                        <p className="text-xs text-text-3 line-through">
-                          {formatPrice(product.comparePrice)}
+                      <div className="flex items-center gap-2">
+                        <p className="font-outfit font-bold text-[16px] text-[#1A1A2E]">
+                          {formatPrice(product.price)}
                         </p>
-                      )}
+                        {product.comparePrice && (
+                          <p className="text-[12px] text-[#9CA3AF] line-through">
+                            {formatPrice(product.comparePrice)}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <Button
-                      className="w-full mt-2 h-9 text-sm font-semibold"
-                      style={{ backgroundColor: VENDOR.theme.primaryColor }}
-                      onClick={(e) => {
-                        e.stopPropagation();
+                    <button
+                      className="w-full h-[36px] rounded-lg font-semibold text-[14px] transition-opacity"
+                      style={{
+                        backgroundColor: '#FF4D00',
+                        color: 'white',
+                        opacity: product.stock === 0 ? 0.4 : 1,
+                        cursor: product.stock === 0 ? 'not-allowed' : 'pointer'
+                      }}
+                      disabled={product.stock === 0}
+                      onClick={() => {
                         setSelectedProduct(product);
                       }}
                     >
                       Commander
-                    </Button>
+                    </button>
                   </div>
-                </Card>
+                </div>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
-
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-5xl mb-4">🔍</div>
-            <p className="text-text-2">Aucun produit trouvé</p>
-          </div>
-        )}
       </main>
 
-      {/* Floating Cart Button */}
-      {items.length > 0 && (
-        <motion.div
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          className="fixed bottom-6 left-4 right-4 z-50"
-        >
-          <Button
-            className="w-full h-14 rounded-2xl shadow-primary press-effect"
-            style={{ backgroundColor: VENDOR.theme.primaryColor }}
-            onClick={() => setShowCart(true)}
-          >
-            <ShoppingCart className="mr-2 h-5 w-5" />
-            Voir mon panier ({items.reduce((sum, i) => sum + i.quantity, 0)} articles)
-            <span className="ml-2 font-outfit font-bold">
-              {formatPrice(getTotal())}
-            </span>
-          </Button>
-        </motion.div>
-      )}
-
       {/* Direct Checkout Bottom Sheet */}
-      <BottomSheet
-        isOpen={!!selectedProduct}
-        onClose={() => {
-          setSelectedProduct(null);
-          setQuantity(1);
-          setCheckoutForm({ ...checkoutForm, name: '', phone: '', note: '' });
-        }}
-        title="Finaliser la commande"
-      >
+      <AnimatePresence>
         {selectedProduct && (
-          <form onSubmit={handleCheckoutSubmit} className="space-y-6 pb-6">
-            {/* Product Recap */}
-            <div className="flex items-center gap-4 bg-bg-elevated p-3 rounded-2xl">
-              <img
-                src={selectedProduct.images[0]}
-                alt={selectedProduct.name}
-                className="h-16 w-16 rounded-xl object-cover"
-              />
-              <div className="flex-1">
-                <p className="font-semibold text-text-1 line-clamp-1">{selectedProduct.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="font-outfit font-bold" style={{ color: VENDOR.theme.primaryColor }}>
-                    {formatPrice(selectedProduct.price)}
-                  </span>
-                  <span className="text-sm text-text-3">x{quantity}</span>
-                </div>
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40"
+              style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+              onClick={() => setSelectedProduct(null)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-xl"
+              style={{ borderRadius: '24px 24px 0 0', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+            >
+              <div className="flex justify-center mt-[12px]">
+                <div className="h-1 w-8 rounded-full bg-[#E5E7EB]" />
               </div>
-              <div className="flex flex-col items-center bg-bg-surface rounded-lg shadow-sm border border-border-subtle">
-                <button
-                  type="button"
-                  onClick={() => setQuantity(Math.min(selectedProduct.stock, quantity + 1))}
-                  className="h-7 w-8 flex items-center justify-center border-b border-border-subtle"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="h-7 w-8 flex items-center justify-center"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 pb-6">
+                <form onSubmit={handleCheckoutSubmit}>
+                  {/* Product Header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <img
+                      src={selectedProduct.image}
+                      alt={selectedProduct.name}
+                      className="h-12 w-12 rounded-lg object-cover"
+                    />
+                    <div>
+                      <p className="font-semibold text-[#1A1A2E] leading-snug">{selectedProduct.name}</p>
+                      <p className="font-outfit font-bold text-[#FF4D00]">{formatPrice(selectedProduct.price)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="h-px w-full bg-[#E5E7EB] mb-4" />
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-text-1 mb-1">Nom complet *</label>
-                <Input
-                  required
-                  placeholder="Ex: Aminata B."
-                  value={checkoutForm.name}
-                  onChange={(e) => setCheckoutForm({ ...checkoutForm, name: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-text-1 mb-1">Téléphone *</label>
-                <Input
-                  required
-                  type="tel"
-                  placeholder="+237 6XX XXX XXX"
-                  value={checkoutForm.phone}
-                  onChange={(e) => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-text-1 mb-1">Ville de livraison *</label>
-                <select
-                  className="w-full h-11 px-3 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-transparent transition-all"
-                  value={checkoutForm.city}
-                  onChange={(e) => setCheckoutForm({ ...checkoutForm, city: e.target.value })}
-                >
-                  {CITIES.map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-text-1 mb-1">Note de livraison (Optionnel)</label>
-                <Input
-                  placeholder="Ex: Carrefour Ndokoti, derrière la station..."
-                  value={checkoutForm.note}
-                  onChange={(e) => setCheckoutForm({ ...checkoutForm, note: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-text-1 mb-2">Moyen de paiement *</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {[
-                    { id: 'mtn_momo', label: 'MTN Mobile Money', icon: '📱' },
-                    { id: 'orange_money', label: 'Orange Money', icon: '📱' },
-                    { id: 'cash', label: 'Paiement à la livraison', icon: '💵' },
-                  ].map((method) => (
-                    <label
-                      key={method.id}
-                      className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                        checkoutForm.paymentMethod === method.id
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border-subtle bg-bg-surface hover:border-border-strong'
-                      }`}
+                  {/* Vos informations */}
+                  <p className="text-[12px] uppercase font-bold text-[#9CA3AF] mb-3">Vos informations</p>
+                  
+                  <div className="space-y-3 mb-6">
+                    <input
+                      required
+                      placeholder="Nom complet *"
+                      value={checkoutForm.name}
+                      onChange={(e) => setCheckoutForm({ ...checkoutForm, name: e.target.value })}
+                      className="w-full h-11 px-3 rounded-[8px] bg-[#F8F6F2] text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#FF4D00]"
+                    />
+                    <input
+                      required
+                      type="tel"
+                      placeholder="Téléphone (+237) *"
+                      value={checkoutForm.phone}
+                      onChange={(e) => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
+                      className="w-full h-11 px-3 rounded-[8px] bg-[#F8F6F2] text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#FF4D00]"
+                    />
+                    <select
+                      required
+                      className="w-full h-11 px-3 rounded-[8px] bg-[#F8F6F2] text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#FF4D00]"
+                      value={checkoutForm.city}
+                      onChange={(e) => setCheckoutForm({ ...checkoutForm, city: e.target.value })}
                     >
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value={method.id}
-                        checked={checkoutForm.paymentMethod === method.id}
-                        onChange={(e) => setCheckoutForm({ ...checkoutForm, paymentMethod: e.target.value })}
-                        className="sr-only"
-                      />
-                      <span className="text-xl">{method.icon}</span>
-                      <span className="font-medium text-text-1">{method.label}</span>
-                      {checkoutForm.paymentMethod === method.id && (
-                        <div className="ml-auto h-4 w-4 rounded-full border-4 border-primary bg-white" />
-                      )}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
+                      {CITIES.map(city => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                    <textarea
+                      placeholder="Note de livraison (Quartier, point de repère...)"
+                      rows={2}
+                      className="w-full p-3 rounded-[8px] bg-[#F8F6F2] text-[#1A1A2E] focus:outline-none focus:ring-2 focus:ring-[#FF4D00] resize-none"
+                      value={checkoutForm.note}
+                      onChange={(e) => setCheckoutForm({ ...checkoutForm, note: e.target.value })}
+                    />
+                  </div>
 
-            <div className="border-t border-border-subtle pt-4">
-              <div className="flex justify-between mb-2">
-                <span className="text-text-2">Sous-total</span>
-                <span>{formatPrice(selectedProduct.price * quantity)}</span>
-              </div>
-              <div className="flex justify-between font-bold text-lg mb-4">
-                <span>Total à payer</span>
-                <span style={{ color: VENDOR.theme.primaryColor }}>
-                  {formatPrice(selectedProduct.price * quantity)}
-                </span>
-              </div>
+                  {/* Mode de paiement */}
+                  <p className="text-[12px] uppercase font-bold text-[#9CA3AF] mb-3">Mode de paiement</p>
+                  <div className="space-y-2 mb-6">
+                    {[
+                      { id: 'mtn_momo', label: 'MTN MoMo', icon: '📱' },
+                      { id: 'orange_money', label: 'Orange Money', icon: '🟠' },
+                      { id: 'cash', label: 'À la livraison', icon: '💵' },
+                    ].map((method) => (
+                      <label
+                        key={method.id}
+                        className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                          checkoutForm.paymentMethod === method.id
+                            ? 'border-[#FF4D00] bg-[#FFF0EB]'
+                            : 'border-transparent bg-[#F8F6F2]'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method.id}
+                          checked={checkoutForm.paymentMethod === method.id}
+                          onChange={(e) => setCheckoutForm({ ...checkoutForm, paymentMethod: e.target.value })}
+                          className="sr-only"
+                        />
+                        <span className="text-xl">{method.icon}</span>
+                        <span className="font-semibold text-[#1A1A2E]">{method.label}</span>
+                      </label>
+                    ))}
+                  </div>
 
-              <Button
-                type="submit"
-                className="w-full text-lg h-14 rounded-xl"
-                style={{ backgroundColor: VENDOR.theme.primaryColor }}
-              >
-                Confirmer la commande
-              </Button>
-            </div>
-          </form>
+                  <button
+                    type="submit"
+                    className="w-full h-[52px] rounded-xl font-bold text-[16px] flex items-center justify-center transition-transform active:scale-[0.98]"
+                    style={{ backgroundColor: '#FF4D00', color: 'white', marginBottom: 'env(safe-area-inset-bottom)' }}
+                  >
+                    Confirmer la commande — {formatPrice(selectedProduct.price)}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </>
         )}
-      </BottomSheet>
+      </AnimatePresence>
 
-      {/* Cart Bottom Sheet */}
-      <BottomSheet
-        isOpen={showCart}
-        onClose={() => setShowCart(false)}
-        title="Mon Panier"
-      >
-        <div className="space-y-4">
-          {items.map((item) => (
-            <div key={item.productId} className="flex items-center gap-3">
-              <img
-                src={item.product.images[0]}
-                alt={item.product.name}
-                className="h-16 w-16 rounded-xl object-cover"
-              />
-              <div className="flex-1">
-                <p className="font-medium text-text-1">{item.product.name}</p>
-                <p className="text-sm text-text-2">
-                  {formatPrice(item.product.price)} x {item.quantity}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                  className="h-8 w-8 rounded-full bg-bg-elevated flex items-center justify-center press-effect"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="font-semibold w-8 text-center">{item.quantity}</span>
-                <button
-                  onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                  className="h-8 w-8 rounded-full bg-bg-elevated flex items-center justify-center press-effect"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-
-          <div className="border-t border-border-subtle pt-4">
-            <div className="flex justify-between mb-2">
-              <span className="text-text-2">Sous-total</span>
-              <span>{formatPrice(getTotal())}</span>
-            </div>
-            <div className="flex justify-between mb-2">
-              <span className="text-text-2">Livraison</span>
-              <span>À calculer</span>
-            </div>
-            <div className="flex justify-between font-bold text-lg">
-              <span>Total</span>
-              <span style={{ color: VENDOR.theme.primaryColor }}>
-                {formatPrice(getTotal())}
-              </span>
-            </div>
-          </div>
-
-          <Button
-            className="w-full"
-            size="lg"
-            style={{ backgroundColor: VENDOR.theme.primaryColor }}
-            onClick={() => {
-              window.location.href = `/checkout?vendor=${VENDOR.businessName.toLowerCase().replace(/\s+/g, '-')}`;
-            }}
-          >
-            Commander maintenant
-          </Button>
-        </div>
-      </BottomSheet>
-
-      {/* ShopLink Footer */}
-      <footer className="text-center pb-6">
-        <p className="text-xs text-text-3">Propulsé par ShopLink CM</p>
+      {/* Footer */}
+      <footer className="text-center py-6">
+        <p className="text-[11px] text-[#9CA3AF]">Propulsé par ShopLink CM</p>
       </footer>
     </div>
   );

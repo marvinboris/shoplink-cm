@@ -99,15 +99,15 @@ const ORDERS: {
   },
   {
     id: 'ORD-006',
-    customer: 'Brigitte N.',
+    customer: 'Joseph N.',
     phone: '+237 6XX XXX XXX',
-    city: 'Douala',
+    city: 'Yaoundé',
     items: [
-      { name: 'Robe wax', quantity: 1, price: 15000, image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=100' },
+      { name: 'Parfum Chanel', quantity: 1, price: 18000, image: 'https://images.unsplash.com/photo-1541643600914-78b084683702?w=100' },
     ],
-    total: 15500,
+    total: 18000,
     status: 'cancelled',
-    paymentMethod: 'orange_money',
+    paymentMethod: 'mtn_momo',
     createdAt: new Date(Date.now() - 2 * 24 * 3600000).toISOString(),
   },
 ];
@@ -191,7 +191,7 @@ export default function OrdersPage() {
                         transition={{ delay: i * 0.05 }}
                       >
                         <Card
-                          className="p-3 cursor-pointer card-hover bg-bg-surface border-border-subtle"
+                          className={`p-3 cursor-pointer card-hover bg-bg-surface border-border-subtle ${order.status === 'cancelled' ? 'border-l-4 border-l-[#F87171]' : ''}`}
                           variant="default"
                           onClick={() => setSelectedOrder(order.id)}
                         >

@@ -13,7 +13,7 @@ import {
   DollarSign,
   ArrowUpRight,
 } from 'lucide-react';
-import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 // Demo data
 const REVENUE_DATA = [
@@ -35,19 +35,19 @@ const TOP_PRODUCTS = [
 ];
 
 const TRAFFIC_SOURCES = [
-  { source: 'whatsapp', label: 'WhatsApp', icon: '💬', visits: 342, conversions: 28, color: 'bg-[#25D366]' },
-  { source: 'instagram', label: 'Instagram', icon: '📷', visits: 189, conversions: 12, color: 'bg-[#E1306C]' },
-  { source: 'tiktok', label: 'TikTok', icon: '🎵', visits: 156, conversions: 8, color: 'bg-black' },
-  { source: 'direct', label: 'Direct', icon: '🌐', visits: 89, conversions: 15, color: 'bg-[#00C48C]' },
+  { source: 'whatsapp', label: 'WhatsApp', icon: '💬', visits: 342, percentage: 44, color: 'bg-[#25D366]' },
+  { source: 'instagram', label: 'Instagram', icon: '📷', visits: 189, percentage: 24, color: 'bg-[#E1306C]' },
+  { source: 'tiktok', label: 'TikTok', icon: '🎵', visits: 156, percentage: 20, color: 'bg-black' },
+  { source: 'direct', label: 'Direct', icon: '🌐', visits: 89, percentage: 12, color: 'bg-[#00C48C]' },
 ];
 
 const HOUR_HEATMAP = [
-  { hour: '6h', intensity: 0 }, { hour: '7h', intensity: 2 }, { hour: '8h', intensity: 5 }, 
-  { hour: '9h', intensity: 8 }, { hour: '10h', intensity: 12 }, { hour: '11h', intensity: 15 },
-  { hour: '12h', intensity: 10 }, { hour: '13h', intensity: 8 }, { hour: '14h', intensity: 6 }, 
-  { hour: '15h', intensity: 10 }, { hour: '16h', intensity: 14 }, { hour: '17h', intensity: 18 },
-  { hour: '18h', intensity: 22 }, { hour: '19h', intensity: 25 }, { hour: '20h', intensity: 20 }, 
-  { hour: '21h', intensity: 15 }, { hour: '22h', intensity: 8 }, { hour: '23h', intensity: 3 },
+  { hour: '6h', intensity: 15 }, { hour: '7h', intensity: 20 }, { hour: '8h', intensity: 25 }, 
+  { hour: '9h', intensity: 25 }, { hour: '10h', intensity: 45 }, { hour: '11h', intensity: 60 },
+  { hour: '12h', intensity: 50 }, { hour: '13h', intensity: 30 }, { hour: '14h', intensity: 30 }, 
+  { hour: '15h', intensity: 50 }, { hour: '16h', intensity: 60 }, { hour: '17h', intensity: 65 },
+  { hour: '18h', intensity: 85 }, { hour: '19h', intensity: 100 }, { hour: '20h', intensity: 90 }, 
+  { hour: '21h', intensity: 40 }, { hour: '22h', intensity: 30 }, { hour: '23h', intensity: 20 },
 ];
 
 export default function AnalyticsPage() {
@@ -57,7 +57,7 @@ export default function AnalyticsPage() {
   const totalOrders = REVENUE_DATA.reduce((sum, d) => sum + d.orders, 0);
   const avgOrderValue = totalRevenue / totalOrders;
   const totalVisits = TRAFFIC_SOURCES.reduce((sum, s) => sum + s.visits, 0);
-  const conversionRate = (TRAFFIC_SOURCES.reduce((sum, s) => sum + s.conversions, 0) / totalVisits) * 100;
+  const conversionRate = 3.5; // Mock fixed conversion rate since conversions are removed
 
   return (
     <div className="p-4 space-y-6">
@@ -101,16 +101,10 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          {/* Area Chart using Recharts */}
+          {/* Bar Chart using Recharts */}
           <div className="h-60 w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={REVENUE_DATA} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF4D00" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#FF4D00" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={REVENUE_DATA} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E3DC" />
                 <XAxis 
                   dataKey="date" 
@@ -121,22 +115,21 @@ export default function AnalyticsPage() {
                 />
                 <YAxis 
                   hide={true} 
-                  domain={['auto', 'auto']} 
+                  domain={[0, 135000]} 
                 />
                 <Tooltip
+                  cursor={{ fill: 'rgba(255, 77, 0, 0.05)' }}
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 16px rgba(26, 26, 46, 0.08)' }}
                   formatter={(value) => [`${formatPrice(Number(value))}`, 'Revenu']}
                   labelStyle={{ fontWeight: 'bold', color: '#1A1A2E', marginBottom: '4px' }}
                 />
-                <Area 
-                  type="monotone" 
+                <Bar 
                   dataKey="revenue" 
-                  stroke="#FF4D00" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorRevenue)" 
+                  fill="#FF4D00" 
+                  radius={[6, 6, 0, 0]}
+                  activeBar={{ fill: '#D93D00' }}
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
@@ -235,7 +228,7 @@ export default function AnalyticsPage() {
           <h3 className="font-display font-bold text-text-1 mb-4">Sources de trafic</h3>
           <div className="space-y-4">
             {TRAFFIC_SOURCES.map((source) => {
-              const volumePercentage = ((source.visits / totalVisits) * 100).toFixed(0);
+              const volumePercentage = source.percentage;
               return (
                 <div key={source.source} className="flex items-center gap-4">
                   <div className={`h-10 w-10 rounded-full ${source.color} flex items-center justify-center text-xl text-white shadow-sm`}>
@@ -287,9 +280,12 @@ export default function AnalyticsPage() {
                   formatter={(value) => [`${value} commandes`, 'Activité']}
                   labelStyle={{ fontWeight: 'bold', color: '#1A1A2E' }}
                 />
-                <Bar dataKey="intensity" radius={[4, 4, 0, 0]}>
+                <Bar dataKey="intensity" radius={[4, 4, 0, 0]} maxBarSize={40} activeBar={{ fill: '#D93D00', opacity: 1 }}>
                   {HOUR_HEATMAP.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={`rgba(255, 77, 0, ${Math.max(0.2, entry.intensity / 25)})`} />
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.intensity >= 85 ? 'var(--primary)' : `rgba(255, 77, 0, ${Math.max(0.15, entry.intensity / 100)})`} 
+                    />
                   ))}
                 </Bar>
               </BarChart>
