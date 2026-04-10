@@ -54,8 +54,9 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (createError) {
+        console.error('Vendor creation error:', createError);
         return NextResponse.json(
-          { success: false, error: 'Erreur création compte' },
+          { success: false, error: 'Erreur création compte', details: createError.message },
           { status: 500 }
         );
       }
