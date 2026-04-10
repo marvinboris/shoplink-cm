@@ -84,17 +84,6 @@ export default function DashboardPage() {
             Marie&apos;s Closet 👋
           </h1>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="relative h-11 w-11 rounded-full bg-bg-surface shadow-sm flex items-center justify-center border border-border-subtle">
-            <Bell className="h-5 w-5 text-text-2" />
-            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 bg-danger rounded-full text-[10px] text-white font-bold flex items-center justify-center notif-dot">
-              3
-            </span>
-          </button>
-          <button className="h-11 w-11 rounded-full bg-primary shadow-primary flex items-center justify-center border-2 border-white">
-            <span className="text-lg font-semibold text-white">M</span>
-          </button>
-        </div>
       </header>
 
       {/* Revenue Card */}
