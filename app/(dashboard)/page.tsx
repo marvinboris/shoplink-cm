@@ -12,7 +12,6 @@ import {
   Package,
   Users,
   Share2,
-  Bell,
   ArrowRight,
   MessageCircle,
 } from 'lucide-react';
