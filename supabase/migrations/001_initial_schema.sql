@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Vendors table
 CREATE TABLE vendors (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   phone TEXT UNIQUE NOT NULL,
   email TEXT,
   name TEXT NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE vendors (
 
 -- Products table
 CREATE TABLE products (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
@@ -49,7 +49,7 @@ CREATE TABLE products (
 
 -- Orders table
 CREATE TABLE orders (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   customer_name TEXT NOT NULL,
   customer_phone TEXT NOT NULL,
@@ -70,7 +70,7 @@ CREATE TABLE orders (
 
 -- Order status history
 CREATE TABLE order_status_history (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   status TEXT NOT NULL,
   note TEXT,
@@ -79,7 +79,7 @@ CREATE TABLE order_status_history (
 
 -- Catalog views (analytics)
 CREATE TABLE catalog_views (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   visitor_ip_hash TEXT,
   referrer TEXT,
@@ -90,7 +90,7 @@ CREATE TABLE catalog_views (
 
 -- Subscriptions
 CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   plan TEXT NOT NULL CHECK (plan IN ('free', 'starter', 'pro')),
   amount INTEGER DEFAULT 0,
@@ -103,7 +103,7 @@ CREATE TABLE subscriptions (
 
 -- Categories
 CREATE TABLE categories (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   emoji TEXT DEFAULT '📦',
@@ -113,7 +113,7 @@ CREATE TABLE categories (
 
 -- OTPs (for auth)
 CREATE TABLE otps (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   phone TEXT NOT NULL,
   code TEXT NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
@@ -123,7 +123,7 @@ CREATE TABLE otps (
 
 -- Payment events (for webhook idempotency)
 CREATE TABLE payment_events (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   provider TEXT NOT NULL,
   provider_ref TEXT NOT NULL,
   payload JSONB,

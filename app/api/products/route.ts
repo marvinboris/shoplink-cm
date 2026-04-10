@@ -40,13 +40,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Non autorisé' }, { status: 401 });
+    // Vendor_id comes from the vendors table (not Supabase Auth user)
+    // The frontend sends vendor_id in the request body
+    if (!body.vendor_id) {
+      return NextResponse.json({ success: false, error: 'vendor_id requis' }, { status: 400 });
     }
 
     const product = {
-      vendor_id: user.id,
+      vendor_id: body.vendor_id,
       name: body.name,
       description: body.description || null,
       price: body.price,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -11,18 +11,17 @@ import { formatPrice } from '@/lib/utils';
 
 export default function SuccessPage({ params }: { params: { slug: string } }) {
   const searchParams = useSearchParams();
-  const [orderNumber, setOrderNumber] = useState('');
 
   const product = searchParams.get('product') || 'Produit inconnu';
   const priceStr = searchParams.get('price');
   const price = priceStr ? parseInt(priceStr) : 0;
   const name = searchParams.get('name') || 'Client';
   const city = searchParams.get('city') || 'Douala';
+  const orderRef = searchParams.get('ref') || '';
+
+  const orderNumber = orderRef || `ORD-${Math.floor(100 + Math.random() * 900).toString()}`;
 
   useEffect(() => {
-    // Generate random 3 digit number for order ID
-    setOrderNumber(Math.floor(100 + Math.random() * 900).toString());
-
     // Confetti
     const duration = 3 * 1000;
     const end = Date.now() + duration;

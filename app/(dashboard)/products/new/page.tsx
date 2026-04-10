@@ -11,6 +11,7 @@ import { Toggle } from '@/components/ui/toggle';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
+import { useCurrentVendor } from '@/hooks/useCurrentVendor';
 import {
   ArrowLeft,
   X,
@@ -41,6 +42,7 @@ export default function NewProductPage() {
   const [isDragging, setIsDragging] = useState(false);
   const router = useRouter();
   const { addToast } = useToast();
+  const { vendor } = useCurrentVendor();
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -78,6 +80,7 @@ export default function NewProductPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          vendor_id: vendor?.id,
           name,
           description,
           price: Number(price),

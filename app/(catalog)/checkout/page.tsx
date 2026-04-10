@@ -80,25 +80,61 @@ function CheckoutContent() {
 
     setIsProcessing(true);
 
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Get vendor_id from cart items (first item's vendor_id)
+      const vendorId = items[0]?.product?.vendor_id;
+      if (!vendorId) {
+        throw new Error('Vendor not found');
+      }
 
-    // Generate order reference
-    const ref = `ORD-${Date.now().toString(36).toUpperCase()}`;
-    setOrderRef(ref);
+      const orderItems = items.map((item) => ({
+        product_id: item.productId,
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity,
+      }));
 
-    // Clear cart and show success
-    clearCart();
-    setIsSuccess(true);
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: vendorId,
+          customer_name: customerInfo.name,
+          customer_phone: customerInfo.phone,
+          customer_city: customerInfo.city,
+          delivery_note: customerInfo.notes || null,
+          items: orderItems,
+          subtotal: getTotal(),
+          delivery_fee: deliveryFee,
+          total,
+          payment_method: paymentMethod === 'cash' ? 'cash' : paymentMethod,
+        }),
+      });
 
-    // Fire confetti
-    confetti({
-      particleCount: 150,
-      spread: 100,
-      origin: { y: 0.5 },
-    });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de la commande');
+      }
 
-    setIsProcessing(false);
+      // Generate order reference
+      const ref = data.data?.reference || `ORD-${Date.now().toString(36).toUpperCase()}`;
+      setOrderRef(ref);
+
+      // Clear cart and show success
+      clearCart();
+      setIsSuccess(true);
+
+      // Fire confetti
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.5 },
+      });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la commande');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (isSuccess) {

@@ -1,4 +1,7 @@
-const CAMPAY_API_URL = 'https://www.campay.net/api';
+const CAMPAY_API_URL = process.env.CAMPAY_API_URL || 'https://www.campay.net/api';
+const CAMPAY_USERNAME = process.env.CAMPAY_USERNAME!;
+const CAMPAY_PASSWORD = process.env.CAMPAY_PASSWORD!;
+const CAMPAY_PERMANENT_TOKEN = process.env.CAMPAY_PERMANENT_TOKEN!;
 
 interface CampayPaymentRequest {
   amount: string;
@@ -27,21 +30,28 @@ interface CampayTransactionStatus {
   date?: string;
 }
 
+function getAuthHeader(): string {
+  // Try permanent token first, then fall back to Basic auth with username:password
+  if (CAMPAY_PERMANENT_TOKEN) {
+    return `Bearer ${CAMPAY_PERMANENT_TOKEN}`;
+  }
+  const token = Buffer.from(`${CAMPAY_USERNAME}:${CAMPAY_PASSWORD}`).toString('base64');
+  return `Basic ${token}`;
+}
+
 export async function createCampayPayment(
   amount: number,
   description: string,
   merchantReference: string,
   redirectUrl?: string
 ): Promise<CampayPaymentResponse> {
-  const username = process.env.CAMPAY_USERNAME!;
-  const password = process.env.CAMPAY_PASSWORD!;
-  const token = Buffer.from(`${username}:${password}`).toString('base64');
+  const authHeader = getAuthHeader();
 
   const response = await fetch(`${CAMPAY_API_URL}/collect/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Basic ${token}`,
+      'Authorization': authHeader,
     },
     body: JSON.stringify({
       amount: amount.toString(),
@@ -63,13 +73,11 @@ export async function createCampayPayment(
 export async function getCampayTransactionStatus(
   transactionId: string
 ): Promise<CampayTransactionStatus> {
-  const username = process.env.CAMPAY_USERNAME!;
-  const password = process.env.CAMPAY_PASSWORD!;
-  const token = Buffer.from(`${username}:${password}`).toString('base64');
+  const authHeader = getAuthHeader();
 
   const response = await fetch(`${CAMPAY_API_URL}/transaction/${transactionId}/`, {
     headers: {
-      Authorization: `Basic ${token}`,
+      'Authorization': authHeader,
     },
   });
 
@@ -82,15 +90,13 @@ export async function getCampayTransactionStatus(
 }
 
 export async function withdrawCampayFunds(amount: number, phone: string): Promise<{ status: string; reference: string }> {
-  const username = process.env.CAMPAY_USERNAME!;
-  const password = process.env.CAMPAY_PASSWORD!;
-  const token = Buffer.from(`${username}:${password}`).toString('base64');
+  const authHeader = getAuthHeader();
 
   const response = await fetch(`${CAMPAY_API_URL}/transfer/`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Basic ${token}`,
+      'Authorization': authHeader,
     },
     body: JSON.stringify({
       amount: amount.toString(),

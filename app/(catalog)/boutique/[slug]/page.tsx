@@ -59,15 +59,52 @@ export default function CatalogPage() {
     return selectedCategory === 'Tout' || p.category === selectedCategory;
   });
 
-  const handleCheckoutSubmit = (e: React.FormEvent) => {
+  const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
-    const url = new URL(window.location.origin + `/boutique/${slug}/success`);
-    url.searchParams.set('product', selectedProduct.name);
-    url.searchParams.set('price', selectedProduct.price.toString());
-    url.searchParams.set('name', checkoutForm.name);
-    url.searchParams.set('city', checkoutForm.city);
-    router.push(url.pathname + url.search);
+    if (!selectedProduct || !shop?.id) return;
+
+    const deliveryFees: Record<string, number> = {
+      'Douala': 1500,
+      'Yaoundé': 2000,
+    };
+    const deliveryFee = deliveryFees[checkoutForm.city] || 3500;
+    const total = selectedProduct.price + deliveryFee;
+
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor_id: shop.id,
+          customer_name: checkoutForm.name,
+          customer_phone: checkoutForm.phone,
+          customer_city: checkoutForm.city,
+          delivery_note: checkoutForm.note || null,
+          items: [{ product_id: selectedProduct.id, name: selectedProduct.name, price: selectedProduct.price, quantity: 1 }],
+          subtotal: selectedProduct.price,
+          delivery_fee: deliveryFee,
+          total,
+          payment_method: checkoutForm.paymentMethod === 'cash' ? 'cash' : checkoutForm.paymentMethod,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || 'Erreur lors de la commande');
+        return;
+      }
+
+      const orderRef = data.data?.reference || `ORD-${Date.now().toString(36).toUpperCase()}`;
+      const url = new URL(window.location.origin + `/boutique/${slug}/success`);
+      url.searchParams.set('product', selectedProduct.name);
+      url.searchParams.set('price', selectedProduct.price.toString());
+      url.searchParams.set('name', checkoutForm.name);
+      url.searchParams.set('city', checkoutForm.city);
+      url.searchParams.set('ref', orderRef);
+      router.push(url.pathname + url.search);
+    } catch {
+      alert('Erreur lors de la commande');
+    }
   };
 
   return (
