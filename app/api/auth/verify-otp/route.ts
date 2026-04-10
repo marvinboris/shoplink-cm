@@ -60,11 +60,6 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await supabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email: `${newVendor.id}@shoplink.cm`,
-      });
-
       return NextResponse.json({
         success: true,
         vendor: newVendor,
