@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useCurrentVendor } from '@/hooks/useCurrentVendor';
+import { useOrders } from '@/hooks/useOrders';
 import { formatPrice } from '@/lib/utils';
 import {
   TrendingUp,
@@ -15,49 +17,79 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-// Demo data
-const REVENUE_DATA = [
-  { date: 'Lun', revenue: 45000, orders: 5 },
-  { date: 'Mar', revenue: 62000, orders: 8 },
-  { date: 'Mer', revenue: 38000, orders: 4 },
-  { date: 'Jeu', revenue: 75000, orders: 9 },
-  { date: 'Ven', revenue: 92000, orders: 12 },
-  { date: 'Sam', revenue: 115000, orders: 15 },
-  { date: 'Dim', revenue: 55000, orders: 7 },
-];
+type Period = '7j' | '30j' | '90j';
 
-const TOP_PRODUCTS = [
-  { name: 'Robe wax taille M', image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=100', sold: 23, revenue: 345000 },
-  { name: 'Kit beauté complet', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=100', sold: 18, revenue: 153000 },
-  { name: 'Parfum imported', image: 'https://images.unsplash.com/photo-1541643600914-78b084683702?w=100', sold: 12, revenue: 420000 },
-  { name: 'Lace wig 360', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=100', sold: 8, revenue: 360000 },
-  { name: 'Sac à main cuir', image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=100', sold: 6, revenue: 132000 },
-];
-
-const TRAFFIC_SOURCES = [
-  { source: 'whatsapp', label: 'WhatsApp', icon: '💬', visits: 342, percentage: 44, color: 'bg-[#25D366]' },
-  { source: 'instagram', label: 'Instagram', icon: '📷', visits: 189, percentage: 24, color: 'bg-[#E1306C]' },
-  { source: 'tiktok', label: 'TikTok', icon: '🎵', visits: 156, percentage: 20, color: 'bg-black' },
-  { source: 'direct', label: 'Direct', icon: '🌐', visits: 89, percentage: 12, color: 'bg-[#00C48C]' },
-];
+const DEMO_CHART_DATA: Record<Period, { date: string; revenue: number; orders: number }[]> = {
+  '7j': [
+    { date: 'Lun', revenue: 45000, orders: 5 },
+    { date: 'Mar', revenue: 62000, orders: 8 },
+    { date: 'Mer', revenue: 38000, orders: 4 },
+    { date: 'Jeu', revenue: 75000, orders: 9 },
+    { date: 'Ven', revenue: 92000, orders: 12 },
+    { date: 'Sam', revenue: 115000, orders: 15 },
+    { date: 'Dim', revenue: 55000, orders: 7 },
+  ],
+  '30j': [
+    { date: 'Sem 1', revenue: 320000, orders: 42 },
+    { date: 'Sem 2', revenue: 285000, orders: 38 },
+    { date: 'Sem 3', revenue: 410000, orders: 55 },
+    { date: 'Sem 4', revenue: 375000, orders: 48 },
+  ],
+  '90j': [
+    { date: 'Jan', revenue: 1250000, orders: 165 },
+    { date: 'Fév', revenue: 1420000, orders: 188 },
+    { date: 'Mar', revenue: 1680000, orders: 215 },
+  ],
+};
 
 const HOUR_HEATMAP = [
-  { hour: '6h', intensity: 15 }, { hour: '7h', intensity: 20 }, { hour: '8h', intensity: 25 }, 
+  { hour: '6h', intensity: 15 }, { hour: '7h', intensity: 20 }, { hour: '8h', intensity: 25 },
   { hour: '9h', intensity: 25 }, { hour: '10h', intensity: 45 }, { hour: '11h', intensity: 60 },
-  { hour: '12h', intensity: 50 }, { hour: '13h', intensity: 30 }, { hour: '14h', intensity: 30 }, 
+  { hour: '12h', intensity: 50 }, { hour: '13h', intensity: 30 }, { hour: '14h', intensity: 30 },
   { hour: '15h', intensity: 50 }, { hour: '16h', intensity: 60 }, { hour: '17h', intensity: 65 },
-  { hour: '18h', intensity: 85 }, { hour: '19h', intensity: 100 }, { hour: '20h', intensity: 90 }, 
+  { hour: '18h', intensity: 85 }, { hour: '19h', intensity: 100 }, { hour: '20h', intensity: 90 },
   { hour: '21h', intensity: 40 }, { hour: '22h', intensity: 30 }, { hour: '23h', intensity: 20 },
 ];
 
 export default function AnalyticsPage() {
-  const [period, setPeriod] = useState<'7j' | '30j' | '90j'>('7j');
+  const router = useRouter();
+  const [period, setPeriod] = useState<Period>('7j');
+  const { vendor } = useCurrentVendor();
+  const { orders } = useOrders(vendor?.id);
 
-  const totalRevenue = REVENUE_DATA.reduce((sum, d) => sum + d.revenue, 0);
-  const totalOrders = REVENUE_DATA.reduce((sum, d) => sum + d.orders, 0);
-  const avgOrderValue = totalRevenue / totalOrders;
-  const totalVisits = TRAFFIC_SOURCES.reduce((sum, s) => sum + s.visits, 0);
-  const conversionRate = 3.5; // Mock fixed conversion rate since conversions are removed
+  const currentData = DEMO_CHART_DATA[period];
+
+  const { totalRevenue, totalOrders, avgOrder, topProducts } = useMemo(() => {
+    const validOrders = orders.filter(o => o.status !== 'cancelled');
+    const revenue = validOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const orderCount = validOrders.length;
+    const avg = orderCount > 0 ? Math.round(revenue / orderCount) : 0;
+
+    // Compute top products by quantity sold
+    const productMap: Record<string, { name: string; image: string; sold: number; revenue: number }> = {};
+    for (const order of validOrders) {
+      for (const item of order.items) {
+        if (!productMap[item.product_id]) {
+          productMap[item.product_id] = {
+            name: item.product_name,
+            image: item.product_image || '',
+            sold: 0,
+            revenue: 0,
+          };
+        }
+        productMap[item.product_id].sold += item.quantity;
+        productMap[item.product_id].revenue += item.price * item.quantity;
+      }
+    }
+    const top = Object.entries(productMap)
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 5)
+      .map(([id, data]) => ({ id, ...data }));
+
+    return { totalRevenue: revenue, totalOrders: orderCount, avgOrder: avg, topProducts: top };
+  }, [orders]);
+
+  const visitors = orders.length * 4; // rough estimate
 
   return (
     <div className="p-4 space-y-6">
@@ -102,20 +134,20 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Bar Chart using Recharts */}
-          <div className="h-60 w-full mt-4">
+          <div style={{ height: '200px' }} className="w-full mt-4">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={REVENUE_DATA} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+              <BarChart data={currentData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E8E3DC" />
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 12, fill: '#9CA3AF' }} 
-                  dy={10} 
+                <XAxis
+                  dataKey="date"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#9CA3AF' }}
+                  dy={10}
                 />
-                <YAxis 
-                  hide={true} 
-                  domain={[0, 135000]} 
+                <YAxis
+                  hide={true}
+                  domain={[0, period === '7j' ? 135000 : period === '30j' ? 500000 : 2000000]}
                 />
                 <Tooltip
                   cursor={{ fill: 'rgba(255, 77, 0, 0.05)' }}
@@ -123,9 +155,9 @@ export default function AnalyticsPage() {
                   formatter={(value) => [`${formatPrice(Number(value))}`, 'Revenu']}
                   labelStyle={{ fontWeight: 'bold', color: '#1A1A2E', marginBottom: '4px' }}
                 />
-                <Bar 
-                  dataKey="revenue" 
-                  fill="#FF4D00" 
+                <Bar
+                  dataKey="revenue"
+                  fill="#FF4D00"
                   radius={[6, 6, 0, 0]}
                   activeBar={{ fill: '#D93D00' }}
                 />
@@ -169,7 +201,7 @@ export default function AnalyticsPage() {
               </div>
               <span className="text-text-2 text-sm">Panier moyen</span>
             </div>
-            <p className="font-outfit text-2xl font-bold">{formatPrice(avgOrderValue)}</p>
+            <p className="font-outfit text-2xl font-bold">{formatPrice(avgOrder)}</p>
             <div className="flex items-center gap-1 text-accent-green text-sm">
               <ArrowUpRight className="h-4 w-4" />
               +8%
@@ -189,7 +221,7 @@ export default function AnalyticsPage() {
               </div>
               <span className="text-text-2 text-sm">Visiteurs</span>
             </div>
-            <p className="font-outfit text-2xl font-bold">{totalVisits}</p>
+            <p className="font-outfit text-2xl font-bold">{visitors}</p>
             <div className="flex items-center gap-1 text-accent-green text-sm">
               <ArrowUpRight className="h-4 w-4" />
               +24%
@@ -209,7 +241,7 @@ export default function AnalyticsPage() {
               </div>
               <span className="text-text-2 text-sm">Conversion</span>
             </div>
-            <p className="font-outfit text-2xl font-bold">{conversionRate.toFixed(1)}%</p>
+            <p className="font-outfit text-2xl font-bold">3.5%</p>
             <div className="flex items-center gap-1 text-accent-green text-sm">
               <ArrowUpRight className="h-4 w-4" />
               +2%
@@ -226,33 +258,9 @@ export default function AnalyticsPage() {
       >
         <Card className="p-5 bg-bg-surface border-border-subtle" variant="default">
           <h3 className="font-display font-bold text-text-1 mb-4">Sources de trafic</h3>
-          <div className="space-y-4">
-            {TRAFFIC_SOURCES.map((source) => {
-              const volumePercentage = source.percentage;
-              return (
-                <div key={source.source} className="flex items-center gap-4">
-                  <div className={`h-10 w-10 rounded-full ${source.color} flex items-center justify-center text-xl text-white shadow-sm`}>
-                    {source.icon}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{source.label}</span>
-                      <span className="text-sm text-text-2">{source.visits} visites</span>
-                    </div>
-                    <div className="h-2 bg-bg-elevated rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${source.color.replace('bg-[', '').replace(']', '')} rounded-full`}
-                        style={{ width: `${volumePercentage}%`, backgroundColor: source.color.includes('bg-[') ? source.color.match(/bg-\[(.*?)\]/)?.[1] : source.color.replace('bg-', '') }}
-                      />
-                    </div>
-                  </div>
-                  <Badge variant="default" size="sm" className="bg-bg-elevated text-text-1 border border-border-subtle">
-                    {volumePercentage}%
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
+          <p className="text-sm text-text-3 text-center py-4">
+            Les données de trafic seront bientôt disponibles
+          </p>
         </Card>
       </motion.div>
 
@@ -264,14 +272,14 @@ export default function AnalyticsPage() {
       >
         <Card className="p-5 bg-bg-surface border-border-subtle" variant="default">
           <h3 className="font-display font-bold text-text-1 mb-4">Heures de pointe</h3>
-          <div className="h-40 w-full mt-2">
+          <div style={{ height: '200px' }} className="w-full mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={HOUR_HEATMAP} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <XAxis 
-                  dataKey="hour" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fill: '#9CA3AF' }} 
+                <XAxis
+                  dataKey="hour"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fill: '#9CA3AF' }}
                   interval={2}
                 />
                 <Tooltip
@@ -282,9 +290,9 @@ export default function AnalyticsPage() {
                 />
                 <Bar dataKey="intensity" radius={[4, 4, 0, 0]} maxBarSize={40} activeBar={{ fill: '#D93D00', opacity: 1 }}>
                   {HOUR_HEATMAP.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.intensity >= 85 ? 'var(--primary)' : `rgba(255, 77, 0, ${Math.max(0.15, entry.intensity / 100)})`} 
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.intensity >= 85 ? 'var(--primary)' : `rgba(255, 77, 0, ${Math.max(0.15, entry.intensity / 100)})`}
                     />
                   ))}
                 </Bar>
@@ -306,27 +314,33 @@ export default function AnalyticsPage() {
         <Card className="p-5 bg-bg-surface border-border-subtle" variant="default">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display font-bold text-text-1">Top produits</h3>
-            <Button variant="ghost" size="sm" className="text-primary">Tout voir</Button>
+            <Button variant="ghost" size="sm" className="text-primary" onClick={() => router.push('/products')}>
+              Tout voir
+            </Button>
           </div>
-          <div className="space-y-3">
-            {TOP_PRODUCTS.map((product, i) => (
-              <div key={product.name} className="flex items-center gap-3">
-                <span className="text-lg font-bold text-text-3 w-6">#{i + 1}</span>
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-12 w-12 rounded-xl object-cover"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-text-1 truncate">{product.name}</p>
-                  <p className="text-sm text-text-2">{product.sold} vendus</p>
+          {topProducts.length > 0 ? (
+            <div className="space-y-3">
+              {topProducts.map((product, i) => (
+                <div key={product.id} className="flex items-center gap-3">
+                  <span className="text-lg font-bold text-text-3 w-6">#{i + 1}</span>
+                  <img
+                    src={product.image || 'https://images.unsplash.com/photo-1551803091-e20673f15770?w=100'}
+                    alt={product.name}
+                    className="h-12 w-12 rounded-xl object-cover"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-text-1 truncate">{product.name}</p>
+                    <p className="text-sm text-text-2">{product.sold} vendus</p>
+                  </div>
+                  <p className="font-outfit font-bold text-text-1">
+                    {formatPrice(product.revenue)}
+                  </p>
                 </div>
-                <p className="font-outfit font-bold text-text-1">
-                  {formatPrice(product.revenue)}
-                </p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-text-3 text-center py-4">Aucune donnée encore</p>
+          )}
         </Card>
       </motion.div>
 

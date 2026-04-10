@@ -8,7 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { useToast } from '@/components/ui/toast';
+import { useCurrentVendor } from '@/hooks/useCurrentVendor';
+import { useProducts } from '@/hooks/useProducts';
 import { formatPrice } from '@/lib/utils';
+import type { Product } from '@/lib/types';
 import {
   Search,
   Plus,
@@ -20,81 +24,43 @@ import {
   Archive,
   Trash2,
   Filter,
+  Save,
 } from 'lucide-react';
 
-// Demo products
-const DEMO_PRODUCTS = [
-  {
-    id: '1',
-    name: 'Robe wax taille M',
-    price: 15000,
-    comparePrice: 20000,
-    image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400',
-    stock: 5,
-    isAvailable: true,
-    isFeatured: true,
-  },
-  {
-    id: '2',
-    name: 'Kit beauté complet',
-    price: 8500,
-    comparePrice: null,
-    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400',
-    stock: 12,
-    isAvailable: true,
-    isFeatured: false,
-  },
-  {
-    id: '3',
-    name: 'Pagne holson 6 yards',
-    price: 12000,
-    comparePrice: 15000,
-    image: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=400',
-    stock: 0,
-    isAvailable: false,
-    isFeatured: false,
-  },
-  {
-    id: '4',
-    name: 'Parfum Chanel imported',
-    price: 35000,
-    comparePrice: 45000,
-    image: 'https://images.unsplash.com/photo-1541643600914-78b084683702?w=400',
-    stock: 3,
-    isAvailable: true,
-    isFeatured: true,
-  },
-  {
-    id: '5',
-    name: 'Sac à main cuir',
-    price: 22000,
-    comparePrice: null,
-    image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400',
-    stock: 7,
-    isAvailable: true,
-    isFeatured: false,
-  },
-  {
-    id: '6',
-    name: 'Lace wig 360 frontal',
-    price: 45000,
-    comparePrice: 55000,
-    image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400',
-    stock: 2,
-    isAvailable: true,
-    isFeatured: false,
-  },
-];
-
 export default function ProductsPage() {
+  const { vendor } = useCurrentVendor();
+  const { products, updateProduct } = useProducts(vendor?.id);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const { addToast } = useToast();
 
-  const filteredProducts = DEMO_PRODUCTS.filter((p) =>
+  const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const selectedProduct = products.find((p) => p.id === selectedProductId);
+
+  const handleToggle = async (id: string) => {
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+    await updateProduct(id, { is_available: !product.is_available });
+    addToast(product.is_available ? 'Produit indisponible' : 'Produit disponible');
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingProduct) return;
+    await updateProduct(editingProduct.id, {
+      name: editingProduct.name,
+      price: editingProduct.price,
+      stock_count: editingProduct.stock_count,
+      compare_price: editingProduct.compare_price,
+    });
+    setEditingProduct(null);
+    addToast('Produit mis à jour');
+  };
 
   return (
     <div className="p-4 space-y-6">
@@ -102,7 +68,7 @@ export default function ProductsPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-text-1">Mes Produits</h1>
-          <p className="text-sm text-text-3">{DEMO_PRODUCTS.length} produits</p>
+          <p className="text-sm text-text-3">{products.length} produits</p>
         </div>
         <Link href="/products/new">
           <Button>
@@ -162,24 +128,24 @@ export default function ProductsPage() {
                 <Card
                   className="overflow-hidden p-0 card-hover"
                   padding="none"
-                  onClick={() => setSelectedProduct(product.id)}
+                  onClick={() => setSelectedProductId(product.id)}
                 >
                   <div className="relative aspect-square">
                     <img
-                      src={product.image}
+                      src={product.images?.[0] || 'https://images.unsplash.com/photo-1551803091-e20673f15770?w=400'}
                       alt={product.name}
                       className="w-full h-full object-cover"
                     />
-                    {product.comparePrice && (
+                    {product.compare_price && (
                       <Badge
                         variant="danger"
                         className="absolute top-2 left-2"
                         size="sm"
                       >
-                        -{Math.round((1 - product.price / product.comparePrice) * 100)}%
+                        -{Math.round((1 - product.price / product.compare_price) * 100)}%
                       </Badge>
                     )}
-                    {product.stock <= 2 && product.stock > 0 && (
+                    {typeof product.stock_count === 'number' && product.stock_count <= 2 && product.stock_count > 0 && (
                       <Badge
                         variant="warning"
                         className="absolute top-2 right-2"
@@ -188,18 +154,32 @@ export default function ProductsPage() {
                         ⚡ Derniers
                       </Badge>
                     )}
-                    {product.stock === 0 && (
+                    {product.stock_count === 0 && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <Badge variant="default" size="lg">
                           Rupture
                         </Badge>
                       </div>
                     )}
+                    {/* Availability Toggle */}
+                    <button
+                      className={`absolute bottom-2 left-2 h-8 px-2 rounded-full text-xs font-semibold transition-all ${
+                        product.is_available
+                          ? 'bg-accent-green text-white'
+                          : 'bg-text-3 text-white'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggle(product.id);
+                      }}
+                    >
+                      {product.is_available ? '✓ Dispo' : '✕ Indispo'}
+                    </button>
                     <button
                       className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-white shadow-lg flex items-center justify-center"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedProduct(product.id);
+                        setSelectedProductId(product.id);
                       }}
                     >
                       <MoreVertical className="h-4 w-4 text-text-2" />
@@ -211,9 +191,9 @@ export default function ProductsPage() {
                       <p className="font-outfit font-bold text-primary">
                         {formatPrice(product.price)}
                       </p>
-                      {product.comparePrice && (
+                      {product.compare_price && (
                         <p className="text-xs text-text-3 line-through">
-                          {formatPrice(product.comparePrice)}
+                          {formatPrice(product.compare_price)}
                         </p>
                       )}
                     </div>
@@ -234,10 +214,10 @@ export default function ProductsPage() {
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="p-3" hover onClick={() => setSelectedProduct(product.id)}>
+                <Card className="p-3" hover onClick={() => setSelectedProductId(product.id)}>
                   <div className="flex items-center gap-3">
                     <img
-                      src={product.image}
+                      src={product.images?.[0] || 'https://images.unsplash.com/photo-1551803091-e20673f15770?w=400'}
                       alt={product.name}
                       className="h-20 w-20 rounded-2xl object-cover"
                     />
@@ -247,22 +227,32 @@ export default function ProductsPage() {
                         <p className="font-outfit font-bold text-primary">
                           {formatPrice(product.price)}
                         </p>
-                        {product.comparePrice && (
+                        {product.compare_price && (
                           <p className="text-sm text-text-3 line-through">
-                            {formatPrice(product.comparePrice)}
+                            {formatPrice(product.compare_price)}
                           </p>
                         )}
                       </div>
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge variant={product.stock > 0 ? 'success' : 'danger'} size="sm">
-                          Stock: {product.stock}
+                        <Badge variant={(product.stock_count ?? 0) > 0 ? 'success' : 'danger'} size="sm">
+                          Stock: {product.stock_count ?? 0}
                         </Badge>
-                        <Badge variant={product.isAvailable ? 'info' : 'default'} size="sm">
-                          {product.isAvailable ? 'Disponible' : 'Indisponible'}
-                        </Badge>
+                        <button
+                          className={`px-2 py-0.5 rounded text-xs font-semibold transition-all ${
+                            product.is_available
+                              ? 'bg-accent-green/10 text-accent-green'
+                              : 'bg-text-3/10 text-text-3'
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggle(product.id);
+                          }}
+                        >
+                          {product.is_available ? 'Disponible' : 'Indisponible'}
+                        </button>
                       </div>
                     </div>
-                    <button className="p-2">
+                    <button className="p-2" onClick={() => setSelectedProductId(product.id)}>
                       <MoreVertical className="h-5 w-5 text-text-3" />
                     </button>
                   </div>
@@ -275,12 +265,20 @@ export default function ProductsPage() {
 
       {/* Product Actions Bottom Sheet */}
       <BottomSheet
-        isOpen={!!selectedProduct}
-        onClose={() => setSelectedProduct(null)}
+        isOpen={!!selectedProductId && !editingProduct}
+        onClose={() => setSelectedProductId(null)}
         title="Actions"
       >
         <div className="space-y-2">
-          <Button variant="outline" className="w-full justify-start">
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => {
+              if (selectedProduct) {
+                setEditingProduct({ ...selectedProduct });
+              }
+            }}
+          >
             <Edit2 className="mr-3 h-5 w-5" />
             Modifier
           </Button>
@@ -297,6 +295,80 @@ export default function ProductsPage() {
             Supprimer
           </Button>
         </div>
+      </BottomSheet>
+
+      {/* Edit Product Bottom Sheet */}
+      <BottomSheet
+        isOpen={!!editingProduct}
+        onClose={() => setEditingProduct(null)}
+        title="Modifier le produit"
+      >
+        {editingProduct && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 mb-4">
+              <img
+                src={editingProduct.images?.[0] || 'https://images.unsplash.com/photo-1551803091-e20673f15770?w=400'}
+                alt={editingProduct.name}
+                className="h-16 w-16 rounded-xl object-cover"
+              />
+              <div>
+                <p className="font-semibold text-text-1">{editingProduct.name}</p>
+                <p className="text-sm text-text-3">ID: {editingProduct.id}</p>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-text-2 mb-1 block">Nom</label>
+              <Input
+                value={editingProduct.name}
+                onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-semibold text-text-2 mb-1 block">Prix (FCFA)</label>
+                <Input
+                  type="number"
+                  value={editingProduct.price}
+                  onChange={(e) =>
+                    setEditingProduct({ ...editingProduct, price: Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-text-2 mb-1 block">Stock</label>
+                <Input
+                  type="number"
+                  value={editingProduct.stock_count ?? 0}
+                  onChange={(e) =>
+                    setEditingProduct({ ...editingProduct, stock_count: Number(e.target.value) })
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-text-2 mb-1 block">Prix comparé (FCFA)</label>
+              <Input
+                type="number"
+                value={editingProduct.compare_price ?? ''}
+                placeholder="Laisser vide si pas de promo"
+                onChange={(e) =>
+                  setEditingProduct({
+                    ...editingProduct,
+                    compare_price: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+              />
+            </div>
+
+            <Button className="w-full mt-4" onClick={handleSaveEdit}>
+              <Save className="mr-2 h-5 w-5" />
+              Enregistrer
+            </Button>
+          </div>
+        )}
       </BottomSheet>
     </div>
   );

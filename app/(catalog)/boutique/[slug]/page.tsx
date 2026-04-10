@@ -2,52 +2,67 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { formatPrice } from '@/lib/utils';
 import { MessageCircle } from 'lucide-react';
-
-const shop = {
-  slug: "maries-closet",
-  name: "Marie's Closet",
-  bio: "Mode & Beauté | Livraison Douala & Yaoundé | Paiement Mobile Money ✓",
-  whatsapp: "+237690000001",
-  coverImage: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800",
-  avatar: "https://i.pravatar.cc/150?img=47",
-}
-
-const products = [
-  { id: 1, name: "Robe wax taille M", price: 15000, comparePrice: 20000, category: "Robes", stock: 5, image: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400" },
-  { id: 2, name: "Kit beauté complet", price: 8500, comparePrice: null, category: "Beauté", stock: 12, image: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400" },
-  { id: 3, name: "Pagne holson 6 yards", price: 12000, comparePrice: 15000, category: "Tissus", stock: 0, image: "https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=400" },
-  { id: 4, name: "Parfum Chanel imported", price: 35000, comparePrice: 45000, category: "Beauté", stock: 3, image: "https://images.unsplash.com/photo-1541643600914-78b084683702?w=400" },
-  { id: 5, name: "Sac à main cuir", price: 22000, comparePrice: null, category: "Accessoires", stock: 8, image: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400" },
-  { id: 6, name: "Lace wig 360 frontal", price: 45000, comparePrice: 55000, category: "Perruques", stock: 2, image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400" },
-]
+import { useShop } from '@/hooks/useShop';
+import { useProducts } from '@/hooks/useProducts';
+import type { Product } from '@/lib/types';
 
 const CATEGORIES = ['Tout', 'Robes', 'Beauté', 'Tissus', 'Accessoires', 'Perruques'];
 const CITIES = ['Douala', 'Yaoundé', 'Bafoussam', 'Garoua', 'Kribi', 'Dschang', 'Limbé'];
 
+type CatalogProduct = {
+  id: string | number;
+  name: string;
+  price: number;
+  comparePrice: number | null;
+  category: string | null;
+  stock: number;
+  image: string;
+};
+
+function mapProduct(p: Product): CatalogProduct {
+  return {
+    id: p.id,
+    name: p.name,
+    price: p.price,
+    comparePrice: p.compare_price,
+    category: p.category,
+    stock: p.stock_count ?? 0,
+    image: p.images?.[0] || 'https://images.unsplash.com/photo-1551803091-e20673f15770?w=400',
+  };
+}
+
 export default function CatalogPage() {
+  const params = useParams();
+  const slug = typeof params.slug === 'string' ? params.slug : 'maries-closet';
   const router = useRouter();
+
+  const { shop } = useShop(slug);
+  const { products } = useProducts(shop?.id, { availableOnly: false });
+
   const [selectedCategory, setSelectedCategory] = useState('Tout');
-  const [selectedProduct, setSelectedProduct] = useState<typeof products[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<CatalogProduct | null>(null);
 
   const [checkoutForm, setCheckoutForm] = useState({
     name: '',
     phone: '',
     city: 'Douala',
     note: '',
-    paymentMethod: 'mtn_momo'
+    paymentMethod: 'mtn_momo',
   });
 
-  const filteredProducts = products.filter((p) => {
+  const catalogProducts = products.map(mapProduct);
+
+  const filteredProducts = catalogProducts.filter((p) => {
     return selectedCategory === 'Tout' || p.category === selectedCategory;
   });
 
   const handleCheckoutSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProduct) return;
-    const url = new URL(window.location.origin + `/boutique/maries-closet/success`);
+    const url = new URL(window.location.origin + `/boutique/${slug}/success`);
     url.searchParams.set('product', selectedProduct.name);
     url.searchParams.set('price', selectedProduct.price.toString());
     url.searchParams.set('name', checkoutForm.name);
@@ -59,7 +74,7 @@ export default function CatalogPage() {
     <div className="min-h-screen bg-bg-base">
       {/* Sticky WhatsApp Button */}
       <a
-        href={`https://wa.me/${shop.whatsapp}`}
+        href={`https://wa.me/${shop?.whatsapp || '237690000001'}`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed top-4 right-4 z-50 flex items-center justify-center gap-1 font-semibold text-sm"
@@ -73,7 +88,7 @@ export default function CatalogPage() {
       <header className="relative">
         <div
           className="w-full h-[160px] bg-cover bg-center relative"
-          style={{ backgroundImage: `url(${shop.coverImage})` }}
+          style={{ backgroundImage: `url(${shop?.coverImage || 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=800'})` }}
         >
           <div
             className="absolute inset-0"
@@ -83,15 +98,15 @@ export default function CatalogPage() {
 
         <div className="relative px-4 pb-4" style={{ marginTop: '-36px' }}>
           <img
-            src={shop.avatar}
-            alt={shop.name}
+            src={shop?.avatar || 'https://i.pravatar.cc/150?img=47'}
+            alt={shop?.name || "Boutique"}
             className="h-[72px] w-[72px] rounded-full object-cover border-[3px] border-white mx-auto shadow-md"
           />
           <h1 className="font-display text-[22px] font-bold text-center mt-2 text-[#1A1A2E]">
-            {shop.name}
+            {shop?.name || "Boutique"}
           </h1>
           <p className="text-center text-[#6B7280] text-[14px] mt-1 px-4 leading-snug">
-            {shop.bio}
+            {shop?.bio || ''}
           </p>
         </div>
       </header>
@@ -155,7 +170,7 @@ export default function CatalogPage() {
                         PROMO
                       </div>
                     ) : null}
-                    
+
                     {product.stock <= 2 && product.stock > 0 && (
                       <div
                         className="absolute top-2 right-2 px-2 py-0.5 rounded font-semibold text-[11px]"
@@ -190,9 +205,7 @@ export default function CatalogPage() {
                         cursor: product.stock === 0 ? 'not-allowed' : 'pointer'
                       }}
                       disabled={product.stock === 0}
-                      onClick={() => {
-                        setSelectedProduct(product);
-                      }}
+                      onClick={() => setSelectedProduct(product)}
                     >
                       Commander
                     </button>
@@ -227,7 +240,7 @@ export default function CatalogPage() {
               <div className="flex justify-center mt-[12px]">
                 <div className="h-1 w-8 rounded-full bg-[#E5E7EB]" />
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-4 pb-6">
                 <form onSubmit={handleCheckoutSubmit}>
                   {/* Product Header */}
@@ -242,12 +255,12 @@ export default function CatalogPage() {
                       <p className="font-outfit font-bold text-[#FF4D00]">{formatPrice(selectedProduct.price)}</p>
                     </div>
                   </div>
-                  
+
                   <div className="h-px w-full bg-[#E5E7EB] mb-4" />
 
                   {/* Vos informations */}
                   <p className="text-[12px] uppercase font-bold text-[#9CA3AF] mb-3">Vos informations</p>
-                  
+
                   <div className="space-y-3 mb-6">
                     <input
                       required

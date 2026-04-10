@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { Input } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
+import { useCurrentVendor } from '@/hooks/useCurrentVendor';
 import { SHOP_THEMES } from '@/lib/types';
 import { formatPrice } from '@/lib/utils';
 import {
@@ -21,6 +24,7 @@ import {
   Download,
   MessageCircle,
 } from 'lucide-react';
+import QRCode from 'qrcode';
 
 const PLANS = [
   {
@@ -37,6 +41,7 @@ const PLANS = [
     period: 'mois',
     features: ['50 produits', 'Commandes illimitées', '8 thèmes premium', 'Stats 30j'],
     commission: '1.5%',
+    popular: true,
   },
   {
     id: 'pro',
@@ -45,7 +50,6 @@ const PLANS = [
     period: 'mois',
     features: ['Produits illimités', 'Commission 0%', 'Domaine custom', 'Analytics avancées'],
     commission: '0%',
-    popular: true,
   },
 ];
 
@@ -55,10 +59,82 @@ const DELIVERY_ZONES = [
   { city: 'Autres villes', fee: 3500, days: '3-5 jours' },
 ];
 
+const PLAN_LABELS: Record<string, string> = {
+  free: 'Gratuit',
+  starter: 'Starter',
+  pro: 'Pro',
+};
+
 export default function SettingsPage() {
   const [currentTheme, setCurrentTheme] = useState('sunset');
   const [showThemes, setShowThemes] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showOrangeMoney, setShowOrangeMoney] = useState(false);
+  const [orangeMoneyNumber, setOrangeMoneyNumber] = useState('');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const { addToast } = useToast();
+  const { vendor } = useCurrentVendor();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('shopTheme');
+    if (saved) setCurrentTheme(saved);
+  }, []);
+
+  const shopUrl = `https://shoplink-cm.vercel.app/boutique/${vendor?.shop_slug || 'maries-closet'}`;
+
+  const handleThemeChange = (themeId: string) => {
+    setCurrentTheme(themeId);
+    localStorage.setItem('shopTheme', themeId);
+    addToast('Thème appliqué');
+    setShowThemes(false);
+  };
+
+  const handleUpgrade = (planId: string) => {
+    setShowUpgrade(false);
+    addToast(`Plan ${planId === 'free' ? 'Gratuit' : planId === 'starter' ? 'Starter' : 'Pro'} sélectionné`);
+  };
+
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(shopUrl);
+    addToast('Lien copié !');
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: vendor?.name || "Ma Boutique",
+      url: shopUrl,
+    };
+    if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+      } catch {}
+    } else {
+      await handleCopyLink();
+    }
+  };
+
+  const handleDownloadQR = async () => {
+    try {
+      const canvas = document.createElement('canvas');
+      await QRCode.toCanvas(canvas, shopUrl, {
+        width: 300,
+        margin: 2,
+        color: { dark: '#1A1A2E', light: '#FFFFFF' },
+      });
+      const link = document.createElement('a');
+      link.download = `${vendor?.shop_slug || 'boutique'}-qr.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      addToast('QR Code téléchargé');
+    } catch {
+      addToast('Erreur lors du téléchargement', 'error');
+    }
+  };
+
+  const handleSaveOrangeMoney = () => {
+    setShowOrangeMoney(false);
+    addToast('Numéro Orange Money enregistré');
+  };
 
   return (
     <div className="p-4 space-y-6">
@@ -68,7 +144,7 @@ export default function SettingsPage() {
           <h1 className="font-display text-2xl font-bold text-text-1">Paramètres</h1>
           <p className="text-sm text-text-3">Configurez votre boutique</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => window.open('/boutique/maries-closet', '_blank')}>
+        <Button variant="outline" size="sm" onClick={() => window.open(shopUrl, '_blank')}>
           <ExternalLink className="mr-2 h-4 w-4" />
           Voir ma boutique
         </Button>
@@ -92,9 +168,11 @@ export default function SettingsPage() {
                 <Badge variant="default" className="bg-white/20 text-white mb-2 border-0">
                   Plan actuel
                 </Badge>
-                <h2 className="font-display text-2xl font-bold mb-1">Starter</h2>
+                <h2 className="font-display text-2xl font-bold mb-1">
+                  {vendor?.plan ? PLAN_LABELS[vendor.plan] || vendor.plan : 'Starter'}
+                </h2>
                 <p className="text-white/80 text-sm">
-                  Expire le 15 Mai 2026
+                  Expire le {vendor?.plan_expires_at ? new Date(vendor.plan_expires_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '15 Mai 2026'}
                 </p>
               </div>
               <Button
@@ -109,7 +187,7 @@ export default function SettingsPage() {
             <div className="mt-4 pt-4 border-t border-white/20">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-white/80">Commission par vente</span>
-                <span className="font-semibold">1.5%</span>
+                <span className="font-semibold">{vendor?.commission_rate ?? 1.5}%</span>
               </div>
             </div>
           </div>
@@ -157,16 +235,16 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 bg-bg-elevated rounded-2xl px-4 py-3">
               <p className="text-sm text-text-2">shoplinkcm.com/</p>
-              <p className="font-semibold text-text-1">maries-closet</p>
+              <p className="font-semibold text-text-1">{vendor?.shop_slug || 'maries-closet'}</p>
             </div>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" onClick={handleCopyLink}>
               <Copy className="h-5 w-5" />
             </Button>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" onClick={handleShare}>
               <Share2 className="h-5 w-5" />
             </Button>
           </div>
-          <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" onClick={() => window.open(shopUrl, '_blank')}>
             <ExternalLink className="mr-2 h-5 w-5" />
             Voir ma boutique
           </Button>
@@ -189,7 +267,7 @@ export default function SettingsPage() {
               <p className="text-sm text-text-3 mb-3">
                 Imprimez-le pour vos marchés et flyers
               </p>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleDownloadQR}>
                 <Download className="mr-2 h-4 w-4" />
                 Télécharger PNG
               </Button>
@@ -250,7 +328,7 @@ export default function SettingsPage() {
               <p className="font-medium">Orange Money</p>
               <p className="text-sm text-text-3">Non configuré</p>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setShowOrangeMoney(true)}>
               Configurer
             </Button>
           </div>
@@ -274,7 +352,7 @@ export default function SettingsPage() {
                 Recevez vos commandes par WhatsApp
               </p>
             </div>
-            <Toggle defaultChecked />
+            <Toggle checked={notificationsEnabled} onChange={setNotificationsEnabled} />
           </div>
         </Card>
       </motion.div>
@@ -289,10 +367,7 @@ export default function SettingsPage() {
           {SHOP_THEMES.map((theme) => (
             <button
               key={theme.id}
-              onClick={() => {
-                setCurrentTheme(theme.id);
-                setShowThemes(false);
-              }}
+              onClick={() => handleThemeChange(theme.id)}
               className={`relative p-3 rounded-2xl border-2 transition-all press-effect ${
                 currentTheme === theme.id
                   ? 'border-primary shadow-primary'
@@ -369,11 +444,34 @@ export default function SettingsPage() {
               <Button
                 className="w-full mt-3"
                 variant={plan.id === 'starter' ? 'secondary' : 'outline'}
+                onClick={() => handleUpgrade(plan.id)}
               >
                 {plan.id === 'free' ? 'Plan actuel' : 'Choisir ce plan'}
               </Button>
             </Card>
           ))}
+        </div>
+      </BottomSheet>
+
+      {/* Orange Money Bottom Sheet */}
+      <BottomSheet
+        isOpen={showOrangeMoney}
+        onClose={() => setShowOrangeMoney(false)}
+        title="Configurer Orange Money"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-semibold text-text-2 mb-1 block">Numéro Orange Money</label>
+            <Input
+              type="tel"
+              placeholder="+237 6XX XXX XXX"
+              value={orangeMoneyNumber}
+              onChange={(e) => setOrangeMoneyNumber(e.target.value)}
+            />
+          </div>
+          <Button className="w-full" onClick={handleSaveOrangeMoney}>
+            Enregistrer
+          </Button>
         </div>
       </BottomSheet>
     </div>

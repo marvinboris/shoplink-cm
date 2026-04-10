@@ -73,10 +73,34 @@ export default function NewProductPage() {
     }
 
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    addToast('Produit ajouté avec succès !', 'success');
-    router.push('/products');
+    try {
+      const res = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          description,
+          price: Number(price),
+          compare_price: comparePrice ? Number(comparePrice) : null,
+          category,
+          stock_count: stock ? Number(stock) : null,
+          track_stock: trackStock,
+          images,
+          is_available: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        addToast('Produit ajouté avec succès !', 'success');
+        router.push('/products');
+      } else {
+        addToast(data.error || 'Erreur lors de la création', 'error');
+      }
+    } catch {
+      addToast('Erreur lors de la création', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

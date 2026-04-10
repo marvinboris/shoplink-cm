@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { useVendorStore } from '@/lib/stores';
+import type { Vendor } from '@/lib/types';
 
 function VerifyOtpContent() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -17,6 +19,7 @@ function VerifyOtpContent() {
   const searchParams = useSearchParams();
   const phone = searchParams.get('phone') || '';
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const { setVendor } = useVendorStore();
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -74,6 +77,13 @@ function VerifyOtpContent() {
       const data = await res.json();
 
       if (data.success) {
+        // Store vendor in Zustand store for session persistence
+        if (data.vendor) {
+          setVendor(data.vendor as Vendor);
+          try {
+            localStorage.setItem('shoplink_vendor', JSON.stringify(data.vendor));
+          } catch {}
+        }
         if (data.needsOnboarding) {
           router.push(`/register?vendorId=${data.vendor.id}`);
         } else {

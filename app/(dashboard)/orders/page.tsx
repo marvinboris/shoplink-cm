@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { BottomSheet } from '@/components/ui/bottom-sheet';
+import { useToast } from '@/components/ui/toast';
+import { useCurrentVendor } from '@/hooks/useCurrentVendor';
+import { useOrders } from '@/hooks/useOrders';
 import { formatPrice, formatRelativeTime } from '@/lib/utils';
 import {
   Search,
@@ -18,99 +21,7 @@ import {
   XCircle,
   Truck,
 } from 'lucide-react';
-import { OrderStatus } from '@/lib/types';
-
-const ORDERS: {
-  id: string;
-  customer: string;
-  phone: string;
-  city: string;
-  items: { name: string; quantity: number; price: number; image: string }[];
-  total: number;
-  status: OrderStatus;
-  paymentMethod: string;
-  createdAt: string;
-}[] = [
-  {
-    id: 'ORD-001',
-    customer: 'Aminata B.',
-    phone: '+237 6XX XXX XXX',
-    city: 'Douala',
-    items: [
-      { name: 'Robe wax taille M', quantity: 1, price: 15000, image: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=100' },
-    ],
-    total: 15500,
-    status: 'pending',
-    paymentMethod: 'mtn_momo',
-    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-  },
-  {
-    id: 'ORD-002',
-    customer: 'Carine M.',
-    phone: '+237 6XX XXX XXX',
-    city: 'Yaoundé',
-    items: [
-      { name: 'Kit beauté complet', quantity: 1, price: 8500, image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=100' },
-      { name: 'Parfum imported', quantity: 1, price: 35000, image: 'https://images.unsplash.com/photo-1541643600914-78b084683702?w=100' },
-    ],
-    total: 44000,
-    status: 'paid',
-    paymentMethod: 'orange_money',
-    createdAt: new Date(Date.now() - 23 * 60000).toISOString(),
-  },
-  {
-    id: 'ORD-003',
-    customer: 'Nadège T.',
-    phone: '+237 6XX XXX XXX',
-    city: 'Dschang',
-    items: [
-      { name: 'Pagne holson', quantity: 2, price: 12000, image: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=100' },
-    ],
-    total: 24500,
-    status: 'processing',
-    paymentMethod: 'wave',
-    createdAt: new Date(Date.now() - 60 * 60000).toISOString(),
-  },
-  {
-    id: 'ORD-004',
-    customer: 'Grace K.',
-    phone: '+237 6XX XXX XXX',
-    city: 'Bafoussam',
-    items: [
-      { name: 'Lace wig 360', quantity: 1, price: 45000, image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=100' },
-    ],
-    total: 45500,
-    status: 'shipped',
-    paymentMethod: 'cash',
-    createdAt: new Date(Date.now() - 3 * 3600000).toISOString(),
-  },
-  {
-    id: 'ORD-005',
-    customer: 'Sylvie A.',
-    phone: '+237 6XX XXX XXX',
-    city: 'Kribi',
-    items: [
-      { name: 'Sac à main cuir', quantity: 1, price: 22000, image: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=100' },
-    ],
-    total: 22500,
-    status: 'delivered',
-    paymentMethod: 'mtn_momo',
-    createdAt: new Date(Date.now() - 24 * 3600000).toISOString(),
-  },
-  {
-    id: 'ORD-006',
-    customer: 'Joseph N.',
-    phone: '+237 6XX XXX XXX',
-    city: 'Yaoundé',
-    items: [
-      { name: 'Parfum Chanel', quantity: 1, price: 18000, image: 'https://images.unsplash.com/photo-1541643600914-78b084683702?w=100' },
-    ],
-    total: 18000,
-    status: 'cancelled',
-    paymentMethod: 'mtn_momo',
-    createdAt: new Date(Date.now() - 2 * 24 * 3600000).toISOString(),
-  },
-];
+import type { OrderStatus } from '@/lib/types';
 
 const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string; label: string }> = {
   pending: { bg: 'bg-accent-gold/10', text: 'text-accent-gold', label: 'En attente' },
@@ -130,16 +41,63 @@ const COLUMNS: { id: OrderStatus; title: string; icon: React.ReactNode }[] = [
   { id: 'cancelled', title: 'Annulé', icon: <XCircle className="h-4 w-4" /> },
 ];
 
+const ALL_STATUSES: { id: OrderStatus; label: string }[] = [
+  { id: 'pending', label: 'En attente' },
+  { id: 'paid', label: 'Payé' },
+  { id: 'processing', label: 'Traitement' },
+  { id: 'shipped', label: 'Expédié' },
+  { id: 'delivered', label: 'Livré' },
+  { id: 'cancelled', label: 'Annulé' },
+];
+
+const PAYMENT_LABELS: Record<string, string> = {
+  mtn_momo: '📱 MoMo',
+  orange_money: '📱 Orange',
+  cash: '💵 Cash',
+  wave: '💵 Wave',
+};
+
 export default function OrdersPage() {
-  const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
+  const { vendor } = useCurrentVendor();
+  const { orders, updateOrderStatus } = useOrders(vendor?.id);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<OrderStatus[]>([]);
+  const { addToast } = useToast();
 
-  const order = ORDERS.find((o) => o.id === selectedOrder);
+  const selectedOrder = orders.find((o) => o.id === selectedOrderId);
 
-  const filteredOrders = ORDERS.filter((o) =>
-    o.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    o.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const toggleFilter = (status: OrderStatus) => {
+    setActiveFilters((prev) =>
+      prev.includes(status) ? prev.filter((s) => s !== status) : [...prev, status]
+    );
+  };
+
+  const applyFilters = () => {
+    setShowFilters(false);
+  };
+
+  const filteredOrders = orders.filter((o) => {
+    const matchesSearch =
+      o.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      o.id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = activeFilters.length === 0 || activeFilters.includes(o.status);
+    return matchesSearch && matchesFilter;
+  });
+
+  const handleStatusChange = async (newStatus: OrderStatus) => {
+    if (!selectedOrderId) return;
+    await updateOrderStatus(selectedOrderId, newStatus);
+    setSelectedOrderId(null);
+    addToast('Statut mis à jour');
+  };
+
+  const handleWhatsApp = () => {
+    if (!selectedOrder) return;
+    const message = encodeURIComponent(`Bonjour ${selectedOrder.customer_name}, concernant votre commande ${selectedOrder.id}...`);
+    window.open(`https://wa.me/${selectedOrder.customer_phone || '237690000001'}?text=${message}`, '_blank');
+  };
 
   return (
     <div className="p-4 space-y-6">
@@ -147,11 +105,16 @@ export default function OrdersPage() {
       <header className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-text-1">Commandes</h1>
-          <p className="text-sm text-text-3">{ORDERS.length} commandes</p>
+          <p className="text-sm text-text-3">{orders.length} commandes</p>
         </div>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => setShowFilters(true)}>
           <Filter className="mr-2 h-4 w-4" />
           Filtrer
+          {activeFilters.length > 0 && (
+            <Badge variant="default" size="sm" className="ml-2 bg-primary text-white">
+              {activeFilters.length}
+            </Badge>
+          )}
         </Button>
       </header>
 
@@ -193,12 +156,12 @@ export default function OrdersPage() {
                         <Card
                           className={`p-3 cursor-pointer card-hover bg-bg-surface border-border-subtle ${order.status === 'cancelled' ? 'border-l-4 border-l-[#F87171]' : ''}`}
                           variant="default"
-                          onClick={() => setSelectedOrder(order.id)}
+                          onClick={() => setSelectedOrderId(order.id)}
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div>
-                              <p className="font-semibold text-text-1">{order.customer}</p>
-                              <p className="text-xs text-text-3">{order.city}</p>
+                              <p className="font-semibold text-text-1">{order.customer_name}</p>
+                              <p className="text-xs text-text-3">{order.customer_city}</p>
                             </div>
                             <p className="font-outfit font-bold text-primary">
                               {formatPrice(order.total)}
@@ -208,8 +171,8 @@ export default function OrdersPage() {
                             {order.items.slice(0, 3).map((item, idx) => (
                               <img
                                 key={idx}
-                                src={item.image}
-                                alt={item.name}
+                                src={item.product_image || 'https://images.unsplash.com/photo-1551803091-e20673f15770?w=100'}
+                                alt={item.product_name}
                                 className="h-10 w-10 rounded-lg object-cover"
                               />
                             ))}
@@ -221,23 +184,19 @@ export default function OrdersPage() {
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-text-3">
-                              {formatRelativeTime(order.createdAt)}
+                              {formatRelativeTime(order.created_at)}
                             </span>
                             <Badge
                               variant={
-                                order.paymentMethod === 'cash'
+                                order.payment_method === 'cash'
                                   ? 'info'
-                                  : order.paymentMethod === 'mtn_momo'
+                                  : order.payment_method === 'mtn_momo'
                                   ? 'warning'
                                   : 'success'
                               }
                               size="sm"
                             >
-                              {order.paymentMethod === 'cash'
-                                ? '💵 Cash'
-                                : order.paymentMethod === 'mtn_momo'
-                                ? '📱 MoMo'
-                                : '📱 Orange'}
+                              {PAYMENT_LABELS[order.payment_method] || order.payment_method}
                             </Badge>
                           </div>
                         </Card>
@@ -256,25 +215,67 @@ export default function OrdersPage() {
         </div>
       </div>
 
+      {/* Filter Bottom Sheet */}
+      <BottomSheet
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        title="Filtrer par statut"
+      >
+        <div className="space-y-3">
+          {ALL_STATUSES.map((status) => (
+            <label
+              key={status.id}
+              className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                activeFilters.includes(status.id)
+                  ? 'border-primary bg-primary/5'
+                  : 'border-transparent bg-bg-elevated'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={activeFilters.includes(status.id)}
+                onChange={() => toggleFilter(status.id)}
+                className="sr-only"
+              />
+              <div
+                className={`h-5 w-5 rounded border-2 flex items-center justify-center ${
+                  activeFilters.includes(status.id)
+                    ? 'border-primary bg-primary'
+                    : 'border-border-subtle'
+                }`}
+              >
+                {activeFilters.includes(status.id) && (
+                  <CheckCircle2 className="h-4 w-4 text-white" />
+                )}
+              </div>
+              <span className="font-semibold text-text-1">{status.label}</span>
+            </label>
+          ))}
+          <Button className="w-full mt-4" onClick={applyFilters}>
+            Appliquer ({activeFilters.length === 0 ? 'Tous' : `${activeFilters.length} sélectionné(s)`})
+          </Button>
+        </div>
+      </BottomSheet>
+
       {/* Order Detail Bottom Sheet */}
       <BottomSheet
-        isOpen={!!selectedOrder}
-        onClose={() => setSelectedOrder(null)}
-        title={`Commande ${order?.id}`}
+        isOpen={!!selectedOrderId}
+        onClose={() => setSelectedOrderId(null)}
+        title={`Commande ${selectedOrder?.id}`}
       >
-        {order && (
+        {selectedOrder && (
           <div className="space-y-6">
             {/* Status */}
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-2xl ${STATUS_COLORS[order.status].bg}`}>
+              <div className={`p-3 rounded-2xl ${STATUS_COLORS[selectedOrder.status].bg}`}>
                 <Clock className="h-5 w-5" style={{ color: 'var(--primary)' }} />
               </div>
               <div>
-                <p className={`font-semibold ${STATUS_COLORS[order.status].text}`}>
-                  {STATUS_COLORS[order.status].label}
+                <p className={`font-semibold ${STATUS_COLORS[selectedOrder.status].text}`}>
+                  {STATUS_COLORS[selectedOrder.status].label}
                 </p>
                 <p className="text-sm text-text-3">
-                  {formatRelativeTime(order.createdAt)}
+                  {formatRelativeTime(selectedOrder.created_at)}
                 </p>
               </div>
             </div>
@@ -283,16 +284,23 @@ export default function OrdersPage() {
             <div className="bg-bg-elevated rounded-2xl p-4">
               <h3 className="font-semibold text-text-1 mb-3">Client</h3>
               <div className="space-y-2">
-                <p className="font-medium">{order.customer}</p>
-                <p className="text-sm text-text-2">{order.phone}</p>
-                <p className="text-sm text-text-2">{order.city}</p>
+                <p className="font-medium">{selectedOrder.customer_name}</p>
+                <p className="text-sm text-text-2">{selectedOrder.customer_phone}</p>
+                <p className="text-sm text-text-2">{selectedOrder.customer_city}</p>
+                {selectedOrder.delivery_note && (
+                  <p className="text-sm text-text-2">📍 {selectedOrder.delivery_note}</p>
+                )}
               </div>
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm" className="flex-1">
+                <button
+                  type="button"
+                  onClick={() => window.open(`tel:${selectedOrder.customer_phone}`)}
+                  className="flex-1 flex items-center justify-center h-9 px-4 rounded-lg border border-border-subtle text-sm font-semibold text-text-1 hover:bg-bg-elevated transition-colors bg-bg-surface"
+                >
                   <Phone className="mr-2 h-4 w-4" />
                   Appeler
-                </Button>
-                <Button size="sm" className="flex-1">
+                </button>
+                <Button size="sm" className="flex-1" onClick={handleWhatsApp}>
                   <MessageCircle className="mr-2 h-4 w-4" />
                   WhatsApp
                 </Button>
@@ -303,15 +311,15 @@ export default function OrdersPage() {
             <div>
               <h3 className="font-semibold text-text-1 mb-3">Produits</h3>
               <div className="space-y-3">
-                {order.items.map((item, i) => (
+                {selectedOrder.items.map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <img
-                      src={item.image}
-                      alt={item.name}
+                      src={item.product_image || 'https://images.unsplash.com/photo-1551803091-e20673f15770?w=100'}
+                      alt={item.product_name}
                       className="h-14 w-14 rounded-xl object-cover"
                     />
                     <div className="flex-1">
-                      <p className="font-medium text-text-1">{item.name}</p>
+                      <p className="font-medium text-text-1">{item.product_name}</p>
                       <p className="text-sm text-text-2">
                         {item.quantity}x {formatPrice(item.price)}
                       </p>
@@ -328,67 +336,68 @@ export default function OrdersPage() {
             <div className="border-t border-border-subtle pt-4">
               <div className="flex justify-between mb-2">
                 <span className="text-text-2">Sous-total</span>
-                <span>{formatPrice(order.total - 1500)}</span>
+                <span>{formatPrice(selectedOrder.subtotal)}</span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-text-2">Livraison</span>
-                <span>{formatPrice(1500)}</span>
+                <span>{formatPrice(selectedOrder.delivery_fee)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg">
                 <span>Total</span>
-                <span className="text-primary">{formatPrice(order.total)}</span>
+                <span className="text-primary">{formatPrice(selectedOrder.total)}</span>
               </div>
             </div>
 
             {/* Payment */}
             <div className="bg-bg-elevated rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-lg">
-                  {order.paymentMethod === 'mtn_momo'
-                    ? '📱'
-                    : order.paymentMethod === 'orange_money'
-                    ? '📱'
-                    : '💵'}
-                </span>
+                <span className="text-lg">{PAYMENT_LABELS[selectedOrder.payment_method] || '💵'}</span>
                 <span className="font-medium">
-                  {order.paymentMethod === 'mtn_momo'
-                    ? 'MTN Mobile Money'
-                    : order.paymentMethod === 'orange_money'
-                    ? 'Orange Money'
+                  {selectedOrder.payment_method === 'mtn_momo' ? 'MTN Mobile Money'
+                    : selectedOrder.payment_method === 'orange_money' ? 'Orange Money'
+                    : selectedOrder.payment_method === 'wave' ? 'Wave'
                     : 'Paiement à la livraison'}
                 </span>
               </div>
-              {order.paymentMethod !== 'cash' && (
+              {selectedOrder.payment_reference && (
                 <p className="text-sm text-text-3">
-                  Référence: {order.id}
+                  Référence: {selectedOrder.payment_reference}
                 </p>
               )}
             </div>
 
             {/* Actions */}
-            <div className="space-y-2">
-              {order.status === 'pending' && (
-                <Button className="w-full" size="lg">
-                  Confirmer le paiement
-                </Button>
-              )}
-              {order.status === 'paid' && (
-                <Button className="w-full" size="lg">
-                  Commencer le traitement
-                </Button>
-              )}
-              {order.status === 'processing' && (
-                <Button className="w-full" size="lg">
-                  Marquer comme expédié
-                </Button>
-              )}
-              {order.status === 'shipped' && (
-                <Button className="w-full" size="lg">
-                  Confirmer la livraison
-                </Button>
-              )}
-              {(order.status === 'pending' || order.status === 'paid') && (
-                <Button variant="danger" className="w-full">
+            <div className="space-y-3">
+              {/* Status Change */}
+              <div>
+                <p className="text-sm font-semibold text-text-2 mb-2">Changer le statut</p>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_STATUSES.filter(s => s.id !== selectedOrder.status).map((status) => (
+                    <Button
+                      key={status.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleStatusChange(status.id)}
+                    >
+                      {status.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* WhatsApp Button */}
+              <Button className="w-full" onClick={handleWhatsApp}>
+                <MessageCircle className="mr-2 h-5 w-5" />
+                WhatsApp client
+              </Button>
+
+              {/* Cancel */}
+              {(selectedOrder.status === 'pending' || selectedOrder.status === 'paid') && (
+                <Button
+                  variant="danger"
+                  className="w-full"
+                  onClick={() => handleStatusChange('cancelled')}
+                >
                   <XCircle className="mr-2 h-5 w-5" />
                   Annuler la commande
                 </Button>
