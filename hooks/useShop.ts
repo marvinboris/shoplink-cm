@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Vendor } from '@/lib/types';
 
 const DEMO_SHOP = {
+  id: '8507b12d-d147-4327-8965-82d76872fa76',
   slug: 'maries-closet',
   name: "Marie's Closet",
   bio: 'Mode & Beauté | Livraison Douala & Yaoundé | Paiement Mobile Money ✓',
@@ -39,7 +40,8 @@ export function useShop(slug?: string) {
           // Fallback to demo
           setShop(DEMO_SHOP as Vendor & typeof DEMO_SHOP);
         } else {
-          setShop({ ...data, ...DEMO_SHOP });
+          // Real vendor data - use it but fill in missing fields from demo
+          setShop({ ...DEMO_SHOP, ...data });
         }
       } catch {
         setShop(DEMO_SHOP as Vendor & typeof DEMO_SHOP);

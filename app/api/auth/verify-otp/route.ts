@@ -46,11 +46,19 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (vendor) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         vendor,
         needsOnboarding: !vendor.shop_slug,
       });
+      response.cookies.set('shoplink_vendor_id', vendor.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        path: '/',
+      });
+      return response;
     }
 
     if (!createAccount) {
@@ -84,11 +92,19 @@ export async function POST(req: NextRequest) {
 
     if (insertRes.ok) {
       const newVendor = await insertRes.json();
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         vendor: newVendor,
         needsOnboarding: true,
       });
+      response.cookies.set('shoplink_vendor_id', newVendor.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 1 week
+        path: '/',
+      });
+      return response;
     }
 
     if (insertRes.status === 409) {
