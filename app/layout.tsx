@@ -33,6 +33,14 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'ShopLink CM',
   },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: { url: '/icon-192.png', sizes: '192x192' },
+  },
 };
 
 export const viewport: Viewport = {
@@ -50,8 +58,6 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning className={`${bricolageGrotesque.variable} ${dmSans.variable} ${outfit.variable}`}>
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body className="min-h-screen bg-surface font-body antialiased">
         <Providers>{children}</Providers>

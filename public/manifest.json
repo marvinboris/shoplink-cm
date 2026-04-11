@@ -4,7 +4,7 @@
   "description": "Boutique en ligne pour le Cameroun",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
+  "background_color": "#F8F6F2",
   "theme_color": "#FF4D00",
   "orientation": "portrait",
   "icons": [
