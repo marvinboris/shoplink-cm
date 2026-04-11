@@ -59,10 +59,20 @@ export default function AdminAnalyticsPage() {
         .from('products')
         .select('*', { count: 'exact', head: true });
 
-      // Fetch orders
+      // Fetch vendors map
+      const { data: vendorsData } = await supabase
+        .from('vendors')
+        .select('id, business_name, name');
+
+      const vendorMap: Record<string, string> = {};
+      (vendorsData || []).forEach((v) => {
+        vendorMap[v.id] = v.business_name || v.name || 'Vendeur';
+      });
+
+      // Fetch orders with vendor info
       const { data: ordersData } = await supabase
         .from('orders')
-        .select('*')
+        .select('vendor_id, total, status, created_at')
         .gte('created_at', startDate.toISOString());
 
       const orders = ordersData || [];
@@ -79,7 +89,7 @@ export default function AdminAnalyticsPage() {
       // Top vendors by orders
       const vendorStats: Record<string, { name: string; ordersCount: number; revenue: number }> = {};
       orders.forEach((o) => {
-        const vendorName = (o.vendor as unknown as { name: string })?.name || 'Unknown';
+        const vendorName = vendorMap[o.vendor_id] || 'Vendeur inconnu';
         if (!vendorStats[o.vendor_id]) {
           vendorStats[o.vendor_id] = { name: vendorName, ordersCount: 0, revenue: 0 };
         }
