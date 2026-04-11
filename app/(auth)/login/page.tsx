@@ -48,8 +48,8 @@ export default function LoginPage() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8 text-center"
       >
-        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-primary shadow-primary">
-          <span className="text-3xl">🛒</span>
+        <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-primary shadow-primary overflow-hidden">
+          <img src="/logo.svg" alt="ShopLink" className="h-10 w-10" />
         </div>
         <h1 className="font-display text-3xl font-bold text-text-1 mb-2">
           Bienvenue sur ShopLink
