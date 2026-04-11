@@ -12,6 +12,98 @@ import type { Product } from '@/lib/types';
 const CATEGORIES = ['Tout', 'Robes', 'Beauté', 'Tissus', 'Accessoires', 'Perruques'];
 const CITIES = ['Douala', 'Yaoundé', 'Bafoussam', 'Garoua', 'Kribi', 'Dschang', 'Limbé'];
 
+// Full theme definitions with all CSS variables (using design system variable names)
+const SHOP_THEMES_FULL: Record<string, Record<string, string>> = {
+  sunset: {
+    '--primary': '#FF4D00',
+    '--primary-light': '#FF6B35',
+    '--primary-dark': '#D93D00',
+    '--primary-soft': 'rgba(255,77,0,0.10)',
+    '--bg-base': '#FFF5F0',
+    '--text-1': '#1A1A2E',
+    '--text-2': '#4B5563',
+    '--text-3': '#9CA3AF',
+    '--border-subtle': '#E8E3DC',
+  },
+  ocean: {
+    '--primary': '#0077B6',
+    '--primary-light': '#00A8E8',
+    '--primary-dark': '#005A8C',
+    '--primary-soft': 'rgba(0,119,182,0.10)',
+    '--bg-base': '#F0F8FF',
+    '--text-1': '#1A1A2E',
+    '--text-2': '#4B5563',
+    '--text-3': '#9CA3AF',
+    '--border-subtle': '#B3D9FF',
+  },
+  forest: {
+    '--primary': '#2D6A4F',
+    '--primary-light': '#40916C',
+    '--primary-dark': '#1B4332',
+    '--primary-soft': 'rgba(45,106,79,0.10)',
+    '--bg-base': '#F0FFF4',
+    '--text-1': '#1A1A2E',
+    '--text-2': '#4B5563',
+    '--text-3': '#9CA3AF',
+    '--border-subtle': '#D1FAE5',
+  },
+  royal: {
+    '--primary': '#7C3AED',
+    '--primary-light': '#A78BFA',
+    '--primary-dark': '#5B21B6',
+    '--primary-soft': 'rgba(124,58,237,0.10)',
+    '--bg-base': '#FAF5FF',
+    '--text-1': '#1A1A2E',
+    '--text-2': '#4B5563',
+    '--text-3': '#9CA3AF',
+    '--border-subtle': '#DDD6FE',
+  },
+  rose: {
+    '--primary': '#E11D48',
+    '--primary-light': '#F43F5E',
+    '--primary-dark': '#BE123C',
+    '--primary-soft': 'rgba(225,29,72,0.10)',
+    '--bg-base': '#FFF1F3',
+    '--text-1': '#1A1A2E',
+    '--text-2': '#4B5563',
+    '--text-3': '#9CA3AF',
+    '--border-subtle': '#FECDD3',
+  },
+  amber: {
+    '--primary': '#D97706',
+    '--primary-light': '#F59E0B',
+    '--primary-dark': '#B45309',
+    '--primary-soft': 'rgba(217,119,6,0.10)',
+    '--bg-base': '#FFFBEB',
+    '--text-1': '#1A1A2E',
+    '--text-2': '#4B5563',
+    '--text-3': '#9CA3AF',
+    '--border-subtle': '#FDE68A',
+  },
+  midnight: {
+    '--primary': '#38BDF8',
+    '--primary-light': '#7DD3FC',
+    '--primary-dark': '#0284C7',
+    '--primary-soft': 'rgba(56,189,248,0.15)',
+    '--bg-base': '#0F172A',
+    '--text-1': '#F1F5F9',
+    '--text-2': '#CBD5E1',
+    '--text-3': '#94A3B8',
+    '--border-subtle': '#334155',
+  },
+  emerald: {
+    '--primary': '#059669',
+    '--primary-light': '#10B981',
+    '--primary-dark': '#047857',
+    '--primary-soft': 'rgba(5,150,105,0.10)',
+    '--bg-base': '#ECFDF5',
+    '--text-1': '#1A1A2E',
+    '--text-2': '#4B5563',
+    '--text-3': '#9CA3AF',
+    '--border-subtle': '#A7F3D0',
+  },
+};
+
 type CatalogProduct = {
   id: string | number;
   name: string;
@@ -63,44 +155,44 @@ export default function CatalogPage() {
   useEffect(() => {
     if (!shop) return;
 
-    // Check localStorage first (theme selected in settings)
-    const savedTheme = localStorage.getItem(`shoplink_theme_${slug}`);
-    if (savedTheme) {
-      try {
-        const theme = JSON.parse(savedTheme);
-        if (theme.primaryColor) {
-          document.documentElement.style.setProperty('--primary', theme.primaryColor);
-          document.documentElement.style.setProperty('--primary-soft', theme.primaryColor + '20');
-        }
-        if (theme.backgroundColor) {
-          document.documentElement.style.setProperty('--bg-base', theme.backgroundColor);
-        }
-        if (theme.cardColor) {
-          document.documentElement.style.setProperty('--card-bg', theme.cardColor);
-        }
-      } catch {}
-    }
-    // Fall back to vendor theme_config from DB
-    else if (shop.theme_config) {
-      if (shop.theme_config.primaryColor) {
-        document.documentElement.style.setProperty('--primary', shop.theme_config.primaryColor);
-        document.documentElement.style.setProperty('--primary-soft', shop.theme_config.primaryColor + '20');
-      }
-      if (shop.theme_config.backgroundColor) {
-        document.documentElement.style.setProperty('--bg-base', shop.theme_config.backgroundColor);
-      }
-      if (shop.theme_config.cardColor) {
-        document.documentElement.style.setProperty('--card-bg', shop.theme_config.cardColor);
-      }
+    // Get theme ID from localStorage (stored as theme ID like "sunset", "ocean", etc.)
+    const savedThemeId = localStorage.getItem('shopTheme');
+    let themeVars: Record<string, string> | null = null;
+
+    if (savedThemeId && SHOP_THEMES_FULL[savedThemeId]) {
+      themeVars = SHOP_THEMES_FULL[savedThemeId];
+    } else if (shop.theme_config?.primaryColor) {
+      // Fall back to creating theme from vendor's theme_config
+      themeVars = {
+        '--primary': shop.theme_config.primaryColor,
+        '--primary-light': shop.theme_config.primaryColor,
+        '--primary-dark': shop.theme_config.primaryColor,
+        '--primary-soft': shop.theme_config.primaryColor + '20',
+        '--bg-base': shop.theme_config.backgroundColor || '#FFF5F0',
+        '--text-1': '#1A1A2E',
+        '--text-2': '#4B5563',
+        '--text-3': '#9CA3AF',
+        '--border-subtle': '#E8E3DC',
+      };
+    } else {
+      // Default theme
+      themeVars = SHOP_THEMES_FULL['sunset'];
     }
 
-    // Cleanup: reset to default on unmount
-    return () => {
-      document.documentElement.style.removeProperty('--primary');
-      document.documentElement.style.removeProperty('--primary-soft');
-      document.documentElement.style.removeProperty('--bg-base');
-      document.documentElement.style.removeProperty('--card-bg');
-    };
+    // Apply all theme variables
+    if (themeVars) {
+      const root = document.documentElement;
+      Object.entries(themeVars).forEach(([key, value]) => {
+        root.style.setProperty(key, value);
+      });
+
+      // Cleanup: remove all theme variables on unmount
+      return () => {
+        Object.keys(themeVars!).forEach((key) => {
+          root.style.removeProperty(key);
+        });
+      };
+    }
   }, [shop, slug]);
 
   // Loading state
