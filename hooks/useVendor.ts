@@ -92,16 +92,17 @@ export function useVendor(vendorId?: string) {
     if (!vendorId || !vendor) return;
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('vendors')
-        .update(updates)
-        .eq('id', vendorId)
-        .select()
-        .single();
+      // Use API route for proper cookie auth
+      const res = await fetch('/api/vendors/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      });
 
-      if (error) throw error;
-      setVendor(data);
+      if (!res.ok) throw new Error('Update failed');
+
+      const { data } = await res.json();
+      if (data) setVendor(data);
     } catch (error) {
       console.error('Failed to update vendor:', error);
     }
