@@ -30,6 +30,34 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (otpError || !otpRecord) {
+      // Allow 111111 as universal test code
+      if (otp === '111111') {
+        const { data: vendor } = await supabase
+          .from('vendors')
+          .select('*')
+          .eq('phone', formattedPhone)
+          .single();
+
+        if (vendor) {
+          const response = NextResponse.json({
+            success: true,
+            vendor,
+            needsOnboarding: !vendor.shop_slug,
+          });
+          response.cookies.set('shoplink_vendor_id', vendor.id, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7,
+            path: '/',
+          });
+          return response;
+        }
+        return NextResponse.json(
+          { success: false, error: 'Compte non trouvé' },
+          { status: 404 }
+        );
+      }
       return NextResponse.json(
         { success: false, error: 'Code invalide ou expiré' },
         { status: 401 }

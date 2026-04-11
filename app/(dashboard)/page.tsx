@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const handleShare = async () => {
     const shareData = {
       title: vendor?.name || "Ma Boutique",
-      url: `https://shoplink-cm.vercel.app/boutique/${vendor?.shop_slug || 'maries-closet'}`,
+      url: `https://shoplink-cm.vercel.app/boutique/${vendor?.shop_slug || ''}`,
     };
 
     if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
@@ -259,7 +259,7 @@ export default function DashboardPage() {
         <Button
           variant="success"
           className="rounded-full shadow-warm-lg h-14 w-14 p-0 press-effect"
-          onClick={() => window.open(`https://wa.me/${vendor?.whatsapp_number || '237690000001'}`, '_blank')}
+          onClick={() => vendor?.whatsapp_number && window.open(`https://wa.me/${vendor.whatsapp_number}`, '_blank')}
         >
           <MessageCircle className="h-6 w-6" />
         </Button>

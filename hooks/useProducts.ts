@@ -4,22 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Product } from '@/lib/types';
 
-const DEMO_PRODUCTS: Product[] = [
-  { id: '1', vendor_id: 'demo', name: 'Robe wax taille M', description: null, price: 15000, compare_price: 20000, images: ['https://images.unsplash.com/photo-1551803091-e20673f15770?w=400'], category: 'Robes', tags: [], stock_count: 5, track_stock: true, is_available: true, is_featured: true, order_index: 0, created_at: '' },
-  { id: '2', vendor_id: 'demo', name: 'Kit beauté complet', description: null, price: 8500, compare_price: null, images: ['https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400'], category: 'Beauté', tags: [], stock_count: 12, track_stock: true, is_available: true, is_featured: false, order_index: 1, created_at: '' },
-  { id: '3', vendor_id: 'demo', name: 'Pagne holson 6 yards', description: null, price: 12000, compare_price: 15000, images: ['https://images.unsplash.com/photo-1590735213920-68192a487bc2?w=400'], category: 'Tissus', tags: [], stock_count: 0, track_stock: true, is_available: false, is_featured: false, order_index: 2, created_at: '' },
-  { id: '4', vendor_id: 'demo', name: 'Parfum Chanel imported', description: null, price: 35000, compare_price: 45000, images: ['https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=400'], category: 'Beauté', tags: [], stock_count: 3, track_stock: true, is_available: true, is_featured: true, order_index: 3, created_at: '' },
-  { id: '5', vendor_id: 'demo', name: 'Sac à main cuir', description: null, price: 22000, compare_price: null, images: ['https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=400'], category: 'Accessoires', tags: [], stock_count: 8, track_stock: true, is_available: true, is_featured: false, order_index: 4, created_at: '' },
-  { id: '6', vendor_id: 'demo', name: 'Lace wig 360 frontal', description: null, price: 45000, compare_price: 55000, images: ['https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400'], category: 'Perruques', tags: [], stock_count: 2, track_stock: true, is_available: true, is_featured: false, order_index: 5, created_at: '' },
-];
-
 export function useProducts(vendorId?: string, options?: { availableOnly?: boolean; category?: string }) {
-  const [products, setProducts] = useState<Product[]>(DEMO_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProducts = useCallback(async () => {
     if (!vendorId) {
-      setProducts(DEMO_PRODUCTS);
+      setProducts([]);
       setLoading(false);
       return;
     }
@@ -42,9 +33,9 @@ export function useProducts(vendorId?: string, options?: { availableOnly?: boole
       const { data, error } = await query;
 
       if (error) throw error;
-      setProducts(data.length > 0 ? data : DEMO_PRODUCTS);
+      setProducts(data || []);
     } catch {
-      setProducts(DEMO_PRODUCTS);
+      setProducts([]);
     }
     setLoading(false);
   }, [vendorId, options?.availableOnly, options?.category]);
@@ -57,7 +48,7 @@ export function useProducts(vendorId?: string, options?: { availableOnly?: boole
     // Optimistic update
     setProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
 
-    if (!vendorId) return; // Demo mode
+    if (!vendorId) return;
 
     try {
       const supabase = createClient();
@@ -68,5 +59,48 @@ export function useProducts(vendorId?: string, options?: { availableOnly?: boole
     }
   };
 
-  return { products, loading, refetch: fetchProducts, updateProduct };
+  const deleteProduct = async (id: string) => {
+    if (!vendorId) return;
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id)
+        .eq('vendor_id', vendorId); // Security: only delete own products
+
+      if (error) throw error;
+
+      // Optimistic update
+      setProducts(prev => prev.filter(p => p.id !== id));
+      return true;
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      return false;
+    }
+  };
+
+  const createProduct = async (product: Partial<Product>) => {
+    if (!vendorId) return null;
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('products')
+        .insert({ ...product, vendor_id: vendorId })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProducts(prev => [...prev, data]);
+      return data;
+    } catch (error) {
+      console.error('Failed to create product:', error);
+      return null;
+    }
+  };
+
+  return { products, loading, refetch: fetchProducts, updateProduct, deleteProduct, createProduct };
 }

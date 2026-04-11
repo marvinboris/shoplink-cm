@@ -13,18 +13,16 @@ interface VendorStats {
   ordersChange: number;
 }
 
-const DEMO_STATS: VendorStats = {
-  todayRevenue: 45000,
-  todayOrders: 7,
-  activeProducts: 23,
-  todayVisitors: 89,
-  revenueChange: 12,
-  ordersChange: 15,
-};
-
 export function useVendor(vendorId?: string) {
   const [vendor, setVendor] = useState<Vendor | null>(null);
-  const [stats, setStats] = useState<VendorStats>(DEMO_STATS);
+  const [stats, setStats] = useState<VendorStats>({
+    todayRevenue: 0,
+    todayOrders: 0,
+    activeProducts: 0,
+    todayVisitors: 0,
+    revenueChange: 0,
+    ordersChange: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,36 +45,39 @@ export function useVendor(vendorId?: string) {
         setVendor(vendorData);
 
         // Fetch stats
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const { data: ordersData } = await supabase
           .from('orders')
           .select('total, created_at')
           .eq('vendor_id', vendorId)
-          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
+          .gte('created_at', today.toISOString());
 
-        const { data: productsData } = await supabase
+        const { count: productsCount } = await supabase
           .from('products')
-          .select('id')
+          .select('*', { count: 'exact', head: true })
           .eq('vendor_id', vendorId)
           .eq('is_available', true);
 
-        const { data: viewsData } = await supabase
+        const { count: viewsCount } = await supabase
           .from('catalog_views')
-          .select('id')
+          .select('*', { count: 'exact', head: true })
           .eq('vendor_id', vendorId)
-          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
+          .gte('created_at', today.toISOString());
 
         const todayRevenue = ordersData?.reduce((sum, o) => sum + (o.total || 0), 0) || 0;
         const todayOrders = ordersData?.length || 0;
-        const activeProducts = productsData?.length || 0;
-        const todayVisitors = viewsData?.length || 0;
+        const activeProducts = productsCount || 0;
+        const todayVisitors = viewsCount || 0;
 
         setStats({
           todayRevenue,
           todayOrders,
           activeProducts,
           todayVisitors,
-          revenueChange: 12,
-          ordersChange: 15,
+          revenueChange: 0,
+          ordersChange: 0,
         });
       } catch (error) {
         console.error('Failed to fetch vendor:', error);

@@ -36,10 +36,10 @@ function mapProduct(p: Product): CatalogProduct {
 
 export default function CatalogPage() {
   const params = useParams();
-  const slug = typeof params.slug === 'string' ? params.slug : 'maries-closet';
+  const slug = typeof params.slug === 'string' ? params.slug : '';
   const router = useRouter();
 
-  const { shop } = useShop(slug);
+  const { shop, loading } = useShop(slug);
   const { products } = useProducts(shop?.id, { availableOnly: false });
 
   const [selectedCategory, setSelectedCategory] = useState('Tout');
@@ -58,6 +58,47 @@ export default function CatalogPage() {
   const filteredProducts = catalogProducts.filter((p) => {
     return selectedCategory === 'Tout' || p.category === selectedCategory;
   });
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-bg-base flex items-center justify-center">
+        <div className="animate-pulse text-text-2">Chargement...</div>
+      </div>
+    );
+  }
+
+  // Not found state
+  if (!shop && slug) {
+    return (
+      <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center p-4">
+        <div className="text-6xl mb-4">🔍</div>
+        <h1 className="font-display text-2xl font-bold text-text-1 mb-2">Boutique introuvable</h1>
+        <p className="text-text-2 text-center mb-6">
+          Cette boutique n&apos;existe pas ou a été supprimée.
+        </p>
+        <a href="/" className="text-primary font-semibold hover:underline">
+          Retour à l&apos;accueil
+        </a>
+      </div>
+    );
+  }
+
+  // Empty catalog when no shop selected
+  if (!shop && !slug) {
+    return (
+      <div className="min-h-screen bg-bg-base flex flex-col items-center justify-center p-4">
+        <div className="text-6xl mb-4">🛍️</div>
+        <h1 className="font-display text-2xl font-bold text-text-1 mb-2">Bienvenue sur ShopLink CM</h1>
+        <p className="text-text-2 text-center mb-6">
+          Trouvez des boutiques près de chez vous
+        </p>
+        <a href="/login" className="text-primary font-semibold hover:underline">
+          Se connecter pour créer ma boutique
+        </a>
+      </div>
+    );
+  }
 
   const handleCheckoutSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,8 +151,9 @@ export default function CatalogPage() {
   return (
     <div className="min-h-screen bg-bg-base">
       {/* Sticky WhatsApp Button */}
+      {shop?.whatsapp_number && (
       <a
-        href={`https://wa.me/${shop?.whatsapp || '237690000001'}`}
+        href={`https://wa.me/${shop.whatsapp_number}`}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed top-4 right-4 z-50 flex items-center justify-center gap-1 font-semibold text-sm"
@@ -120,6 +162,7 @@ export default function CatalogPage() {
         <MessageCircle className="h-5 w-5" />
         WhatsApp
       </a>
+      )}
 
       {/* Header */}
       <header className="relative">

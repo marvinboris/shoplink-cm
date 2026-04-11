@@ -19,8 +19,11 @@ export async function sendSMS(to: string, message: string) {
     return { success: true, data: null };
   }
 
+  // Africa's Talking requires + prefix
+  const formattedNumber = to.startsWith('+') ? to : `+${to}`;
+
   try {
-    const result = await at.SMS.send({ to, message });
+    const result = await at.SMS.send({ to: formattedNumber, message });
     return { success: true, data: result };
   } catch (error) {
     console.error('Africastalking SMS error:', error);

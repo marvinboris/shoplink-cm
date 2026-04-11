@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,8 @@ import { BottomSheet } from '@/components/ui/bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { useCurrentVendor } from '@/hooks/useCurrentVendor';
+import { useVendor } from '@/hooks/useVendor';
+import { useVendorStore } from '@/lib/stores';
 import { SHOP_THEMES } from '@/lib/types';
 import { formatPrice } from '@/lib/utils';
 import {
@@ -23,6 +26,7 @@ import {
   Check,
   Download,
   MessageCircle,
+  LogOut,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 
@@ -74,17 +78,36 @@ export default function SettingsPage() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const { addToast } = useToast();
   const { vendor } = useCurrentVendor();
+  const { updateVendor } = useVendor(vendor?.id);
+  const { clearVendor } = useVendorStore();
+  const router = useRouter();
 
   useEffect(() => {
     const saved = localStorage.getItem('shopTheme');
     if (saved) setCurrentTheme(saved);
   }, []);
 
-  const shopUrl = `https://shoplink-cm.vercel.app/boutique/${vendor?.shop_slug || 'maries-closet'}`;
+  const shopUrl = `https://shoplink-cm.vercel.app/boutique/${vendor?.shop_slug || ''}`;
 
-  const handleThemeChange = (themeId: string) => {
+  const handleThemeChange = async (themeId: string) => {
+    const selectedTheme = SHOP_THEMES.find(t => t.id === themeId);
+    if (!selectedTheme) return;
+
     setCurrentTheme(themeId);
     localStorage.setItem('shopTheme', themeId);
+
+    // Save theme colors to database
+    if (vendor?.id) {
+      await updateVendor({
+        theme_config: {
+          primaryColor: selectedTheme.primaryColor,
+          backgroundColor: selectedTheme.backgroundColor,
+          cardColor: selectedTheme.cardColor,
+          fontFamily: vendor.theme_config?.fontFamily || 'outfit',
+        },
+      });
+    }
+
     addToast('Thème appliqué');
     setShowThemes(false);
   };
@@ -134,6 +157,15 @@ export default function SettingsPage() {
   const handleSaveOrangeMoney = () => {
     setShowOrangeMoney(false);
     addToast('Numéro Orange Money enregistré');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    localStorage.removeItem('shoplink_vendor');
+    clearVendor();
+    router.push('/login');
   };
 
   return (
@@ -235,7 +267,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 bg-bg-elevated rounded-2xl px-4 py-3">
               <p className="text-sm text-text-2">shoplinkcm.com/</p>
-              <p className="font-semibold text-text-1">{vendor?.shop_slug || 'maries-closet'}</p>
+              <p className="font-semibold text-text-1">{vendor?.shop_slug || 'Non configuré'}</p>
             </div>
             <Button variant="outline" size="icon" onClick={handleCopyLink}>
               <Copy className="h-5 w-5" />
@@ -474,6 +506,22 @@ export default function SettingsPage() {
           </Button>
         </div>
       </BottomSheet>
+
+      {/* Déconnexion */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <Button
+          variant="danger"
+          className="w-full"
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-5 w-5" />
+          Déconnexion
+        </Button>
+      </motion.div>
     </div>
   );
 }

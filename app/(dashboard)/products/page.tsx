@@ -29,7 +29,7 @@ import {
 
 export default function ProductsPage() {
   const { vendor } = useCurrentVendor();
-  const { products, updateProduct } = useProducts(vendor?.id);
+  const { products, updateProduct, deleteProduct, createProduct } = useProducts(vendor?.id);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -60,6 +60,47 @@ export default function ProductsPage() {
     });
     setEditingProduct(null);
     addToast('Produit mis à jour');
+  };
+
+  const handleDelete = async (productId: string) => {
+    if (!confirm('Supprimer ce produit ?')) return;
+    const success = await deleteProduct(productId);
+    if (success) {
+      addToast('Produit supprimé');
+      setSelectedProductId(null);
+    } else {
+      addToast('Erreur lors de la suppression', 'error');
+    }
+  };
+
+  const handleDuplicate = async (product: Product) => {
+    const newProduct = await createProduct({
+      vendor_id: product.vendor_id,
+      name: product.name + ' (copie)',
+      description: product.description,
+      price: product.price,
+      compare_price: product.compare_price,
+      images: product.images,
+      category: product.category,
+      tags: product.tags,
+      stock_count: product.stock_count,
+      track_stock: product.track_stock,
+      is_available: product.is_available,
+      is_featured: product.is_featured,
+      order_index: product.order_index + 1,
+    });
+    if (newProduct) {
+      addToast('Produit dupliqué');
+      setSelectedProductId(null);
+    } else {
+      addToast('Erreur lors de la duplication', 'error');
+    }
+  };
+
+  const handleArchive = async (product: Product) => {
+    await updateProduct(product.id, { is_available: !product.is_available });
+    addToast(product.is_available ? 'Produit archivé' : 'Produit réactivé');
+    setSelectedProductId(null);
   };
 
   return (
@@ -282,15 +323,27 @@ export default function ProductsPage() {
             <Edit2 className="mr-3 h-5 w-5" />
             Modifier
           </Button>
-          <Button variant="outline" className="w-full justify-start">
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => selectedProduct && handleDuplicate(selectedProduct)}
+          >
             <Copy className="mr-3 h-5 w-5" />
             Dupliquer
           </Button>
-          <Button variant="outline" className="w-full justify-start">
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => selectedProduct && handleArchive(selectedProduct)}
+          >
             <Archive className="mr-3 h-5 w-5" />
             Archiver
           </Button>
-          <Button variant="danger" className="w-full justify-start">
+          <Button
+            variant="danger"
+            className="w-full justify-start"
+            onClick={() => selectedProduct && handleDelete(selectedProduct.id)}
+          >
             <Trash2 className="mr-3 h-5 w-5" />
             Supprimer
           </Button>

@@ -4,26 +4,19 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Vendor } from '@/lib/types';
 
-const DEMO_SHOP = {
-  id: '8507b12d-d147-4327-8965-82d76872fa76',
-  slug: 'maries-closet',
-  name: "Marie's Closet",
-  bio: 'Mode & Beauté | Livraison Douala & Yaoundé | Paiement Mobile Money ✓',
-  whatsapp: '+237690000001',
-  coverImage: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=800',
-  avatar: 'https://i.pravatar.cc/150?img=47',
-};
+interface Shop extends Vendor {
+  coverImage?: string;
+  avatar?: string;
+}
 
 export function useShop(slug?: string) {
-  const [shop, setShop] = useState<(Vendor & typeof DEMO_SHOP) | null>(null);
+  const [shop, setShop] = useState<Shop | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchShop() {
       if (!slug) {
-        // Use demo shop
-        setShop(DEMO_SHOP as Vendor & typeof DEMO_SHOP);
         setLoading(false);
         return;
       }
@@ -37,14 +30,20 @@ export function useShop(slug?: string) {
           .single();
 
         if (sbError) {
-          // Fallback to demo
-          setShop(DEMO_SHOP as Vendor & typeof DEMO_SHOP);
-        } else {
-          // Real vendor data - use it but fill in missing fields from demo
-          setShop({ ...DEMO_SHOP, ...data });
+          setError(sbError.message);
+          setShop(null);
+        } else if (data) {
+          // Map vendor data to shop format
+          const shopData: Shop = {
+            ...data,
+            coverImage: `https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=800`,
+            avatar: data.avatar_url || `https://i.pravatar.cc/150?img=47`,
+          };
+          setShop(shopData);
         }
-      } catch {
-        setShop(DEMO_SHOP as Vendor & typeof DEMO_SHOP);
+      } catch (e) {
+        setError('Failed to fetch shop');
+        setShop(null);
       }
       setLoading(false);
     }
