@@ -15,9 +15,13 @@ export interface Vendor {
   plan_expires_at: string | null;
   total_sales: number;
   commission_rate: number;
+  mtn_number: string | null;
   whatsapp_number: string | null;
   instagram_handle: string | null;
   tiktok_handle: string | null;
+  orange_number: string | null;
+  whatsapp_notifs: boolean;
+  suspended: boolean;
   created_at: string;
 }
 

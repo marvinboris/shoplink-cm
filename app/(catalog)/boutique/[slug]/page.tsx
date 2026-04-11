@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useParams } from 'next/navigation';
 import { formatPrice } from '@/lib/utils';
@@ -58,6 +58,50 @@ export default function CatalogPage() {
   const filteredProducts = catalogProducts.filter((p) => {
     return selectedCategory === 'Tout' || p.category === selectedCategory;
   });
+
+  // Apply theme from localStorage or vendor config
+  useEffect(() => {
+    if (!shop) return;
+
+    // Check localStorage first (theme selected in settings)
+    const savedTheme = localStorage.getItem(`shoplink_theme_${slug}`);
+    if (savedTheme) {
+      try {
+        const theme = JSON.parse(savedTheme);
+        if (theme.primaryColor) {
+          document.documentElement.style.setProperty('--primary', theme.primaryColor);
+          document.documentElement.style.setProperty('--primary-soft', theme.primaryColor + '20');
+        }
+        if (theme.backgroundColor) {
+          document.documentElement.style.setProperty('--bg-base', theme.backgroundColor);
+        }
+        if (theme.cardColor) {
+          document.documentElement.style.setProperty('--card-bg', theme.cardColor);
+        }
+      } catch {}
+    }
+    // Fall back to vendor theme_config from DB
+    else if (shop.theme_config) {
+      if (shop.theme_config.primaryColor) {
+        document.documentElement.style.setProperty('--primary', shop.theme_config.primaryColor);
+        document.documentElement.style.setProperty('--primary-soft', shop.theme_config.primaryColor + '20');
+      }
+      if (shop.theme_config.backgroundColor) {
+        document.documentElement.style.setProperty('--bg-base', shop.theme_config.backgroundColor);
+      }
+      if (shop.theme_config.cardColor) {
+        document.documentElement.style.setProperty('--card-bg', shop.theme_config.cardColor);
+      }
+    }
+
+    // Cleanup: reset to default on unmount
+    return () => {
+      document.documentElement.style.removeProperty('--primary');
+      document.documentElement.style.removeProperty('--primary-soft');
+      document.documentElement.style.removeProperty('--bg-base');
+      document.documentElement.style.removeProperty('--card-bg');
+    };
+  }, [shop, slug]);
 
   // Loading state
   if (loading) {

@@ -94,6 +94,14 @@ export default function SettingsPage() {
     if (!selectedTheme) return;
 
     setCurrentTheme(themeId);
+
+    // Save theme colors to localStorage for boutique page
+    const themeData = {
+      primaryColor: selectedTheme.primaryColor,
+      backgroundColor: selectedTheme.backgroundColor,
+      cardColor: selectedTheme.cardColor,
+    };
+    localStorage.setItem(`shoplink_theme_${vendor?.shop_slug}`, JSON.stringify(themeData));
     localStorage.setItem('shopTheme', themeId);
 
     // Save theme colors to database
@@ -112,9 +120,27 @@ export default function SettingsPage() {
     setShowThemes(false);
   };
 
-  const handleUpgrade = (planId: string) => {
+  const handleUpgrade = async (planId: string) => {
+    if (planId === vendor?.plan) return;
+
+    try {
+      const res = await fetch('/api/subscriptions/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planId }),
+      });
+
+      if (res.ok) {
+        addToast(`Plan ${planId === 'free' ? 'Gratuit' : planId === 'starter' ? 'Starter' : 'Pro'} activé`);
+        // Refresh vendor data
+        window.location.reload();
+      } else {
+        addToast('Erreur lors du changement de plan', 'error');
+      }
+    } catch {
+      addToast('Erreur lors du changement de plan', 'error');
+    }
     setShowUpgrade(false);
-    addToast(`Plan ${planId === 'free' ? 'Gratuit' : planId === 'starter' ? 'Starter' : 'Pro'} sélectionné`);
   };
 
   const handleCopyLink = async () => {
@@ -154,9 +180,18 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveOrangeMoney = () => {
+  const handleSaveOrangeMoney = async () => {
+    if (!vendor?.id) return;
+    await updateVendor({ orange_number: orangeMoneyNumber });
     setShowOrangeMoney(false);
     addToast('Numéro Orange Money enregistré');
+  };
+
+  const handleWhatsAppToggle = async (enabled: boolean) => {
+    if (!vendor?.id) return;
+    await updateVendor({ whatsapp_notifs: enabled });
+    setNotificationsEnabled(enabled);
+    addToast(enabled ? 'Notifications WhatsApp activées' : 'Notifications WhatsApp désactivées');
   };
 
   const handleLogout = async () => {
@@ -384,7 +419,7 @@ export default function SettingsPage() {
                 Recevez vos commandes par WhatsApp
               </p>
             </div>
-            <Toggle checked={notificationsEnabled} onChange={setNotificationsEnabled} />
+            <Toggle checked={notificationsEnabled} onChange={handleWhatsAppToggle} />
           </div>
         </Card>
       </motion.div>
