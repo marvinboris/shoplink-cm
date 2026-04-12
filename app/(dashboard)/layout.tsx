@@ -19,12 +19,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-bg-elevated flex flex-col">
+    <div className="min-h-[100dvh] bg-bg-elevated flex flex-col">
       {/* Main content */}
       <main className="flex-1 pb-20 overflow-y-auto">{children}</main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bottom-nav-safe z-50 bg-bg-surface border-t border-border-subtle" style={{ boxShadow: '0 -4px 20px rgba(26,26,46,0.06)' }}>
+      <nav className="fixed bottom-0 left-0 right-0 bottom-nav-safe z-50 bg-bg-surface border-t border-border-subtle" style={{ boxShadow: '0 -4px 20px rgba(26,26,46,0.06)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex items-center justify-around h-16">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href ||

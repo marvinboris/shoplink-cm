@@ -285,7 +285,7 @@ export default function CatalogPage() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-base">
+    <div className="min-h-[100dvh] bg-bg-base">
       {/* Sticky WhatsApp Button */}
       {shop?.whatsapp_number && (
       <a

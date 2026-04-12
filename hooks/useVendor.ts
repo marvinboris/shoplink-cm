@@ -96,15 +96,20 @@ export function useVendor(vendorId?: string) {
       const res = await fetch('/api/vendors/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ updates }),
       });
 
-      if (!res.ok) throw new Error('Update failed');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Update failed');
+      }
 
       const { data } = await res.json();
       if (data) setVendor(data);
     } catch (error) {
       console.error('Failed to update vendor:', error);
+      throw error;
     }
   };
 
